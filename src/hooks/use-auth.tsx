@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -9,7 +10,7 @@ import {
   User as FirebaseUser 
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { useAuth as useAuthInstance, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
 export type UserRole = 'USER' | 'ADMIN' | 'MODERATOR';
@@ -39,6 +40,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const auth = useAuthInstance();
+  const db = useFirestore();
   const router = useRouter();
 
   useEffect(() => {
@@ -79,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [auth, db]);
 
   const login = async () => {
     const provider = new GoogleAuthProvider();

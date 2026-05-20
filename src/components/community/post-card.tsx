@@ -1,10 +1,11 @@
+
 "use client"
 
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
-import { doc, updateDoc, increment, arrayUnion, arrayRemove, getDoc, deleteDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { doc, updateDoc, increment, deleteDoc } from 'firebase/firestore';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -22,28 +23,27 @@ import {
   MoreVertical, 
   Flag, 
   Trash2,
-  Bookmark,
-  Pin
+  Bookmark
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 export function PostCard({ post }: { post: any }) {
   const { profile } = useAuth();
+  const db = useFirestore();
   const { toast } = useToast();
-  const [isLiked, setIsLiked] = useState(false); // Simplified for UI
+  const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likesCount || 0);
 
   const handleLike = async () => {
-    if (!profile) return;
+    if (!profile || !db) return;
     
-    // In a real app, you'd check a 'likes' subcollection or array
     setIsLiked(!isLiked);
     setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
     
     try {
       const postRef = doc(db, 'posts', post.id);
-      await updateDoc(postRef, {
+      updateDoc(postRef, {
         likesCount: increment(isLiked ? -1 : 1)
       });
     } catch (e) {
@@ -52,7 +52,7 @@ export function PostCard({ post }: { post: any }) {
   };
 
   const handleDelete = async () => {
-    if (!profile) return;
+    if (!profile || !db) return;
     try {
       await deleteDoc(doc(db, 'posts', post.id));
       toast({ title: "Post Deleted" });

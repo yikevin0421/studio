@@ -1,19 +1,21 @@
+
 "use client"
 
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
+import { useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { ImagePlus, Send, AlertCircle, Loader2 } from 'lucide-react';
+import { ImagePlus, Send, AlertCircle, Loader2, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { aiContentModeration } from '@/ai/flows/ai-content-moderation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export function CreatePost({ onPostCreated }: { onPostCreated?: () => void }) {
   const { profile } = useAuth();
+  const db = useFirestore();
   const { toast } = useToast();
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,7 +23,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated?: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() || !profile) return;
+    if (!content.trim() || !profile || !db) return;
 
     setIsSubmitting(true);
     setModerationResult(null);
@@ -42,7 +44,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated?: () => void }) {
       }
 
       // If clean, create post
-      await addDoc(collection(db, 'posts'), {
+      addDoc(collection(db, 'posts'), {
         userId: profile.uid,
         username: profile.displayName,
         email: profile.email,
@@ -113,6 +115,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated?: () => void }) {
             </div>
           </div>
           <Button 
+            type="submit"
             disabled={!content.trim() || isSubmitting} 
             className="rounded-full px-6 shadow-lg shadow-primary/20"
           >
@@ -128,5 +131,3 @@ export function CreatePost({ onPostCreated }: { onPostCreated?: () => void }) {
     </Card>
   );
 }
-
-import { MessageSquare } from 'lucide-react';

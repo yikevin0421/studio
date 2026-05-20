@@ -1,10 +1,11 @@
+
 "use client"
 
 import { useState, useEffect } from 'react';
 import { AuthenticatedLayout } from '@/components/layout/authenticated-layout';
 import { CreatePost } from '@/components/community/create-post';
 import { PostCard } from '@/components/community/post-card';
-import { db } from '@/lib/firebase';
+import { useFirestore } from '@/firebase';
 import { collection, query, orderBy, onSnapshot, limit } from 'firebase/firestore';
 import { Loader2, Search, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -15,8 +16,11 @@ export default function CommunityPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const db = useFirestore();
 
   useEffect(() => {
+    if (!db) return;
+
     const q = query(
       collection(db, 'posts'), 
       orderBy('timestamp', 'desc'),
@@ -36,7 +40,7 @@ export default function CommunityPage() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [db]);
 
   const filteredPosts = posts.filter(post => 
     post.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
