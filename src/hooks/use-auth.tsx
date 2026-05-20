@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -45,34 +44,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // Enforce @daegu.ac.kr domain
-        if (!user.email?.endsWith('@daegu.ac.kr') && process.env.NODE_ENV === 'production') {
+    if (!auth || !db) return;
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Enforce university domain in production
+        if (process.env.NODE_ENV === 'production' && !firebaseUser.email?.endsWith('@daegu.ac.kr')) {
           await signOut(auth);
+          setUser(null);
+          setProfile(null);
           setLoading(false);
           return;
         }
 
-        setUser(user);
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
+        setUser(firebaseUser);
+        
+        try {
+          const userDocRef = doc(db, 'users', firebaseUser.uid);
+          const userDoc = await getDoc(userDocRef);
 
-        if (!userDoc.exists()) {
-          const newProfile: UserProfile = {
-            uid: user.uid,
-            email: user.email || '',
-            displayName: user.displayName || 'Anonymous Student',
-            photoURL: user.photoURL || '',
-            role: 'USER',
-            createdAt: serverTimestamp(),
-            lastLogin: serverTimestamp(),
-          };
-          await setDoc(userDocRef, newProfile);
-          setProfile(newProfile);
-        } else {
-          setProfile(userDoc.data() as UserProfile);
-          await setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true });
+          if (!userDoc.exists()) {
+            const newProfile: UserProfile = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              displayName: firebaseUser.displayName || 'Anonymous Student',
+              photoURL: firebaseUser.photoURL || '',
+              role: 'USER',
+              createdAt: serverTimestamp(),
+              lastLogin: serverTimestamp(),
+            };
+            await setDoc(userDocRef, newProfile);
+            setProfile(newProfile);
+          } else {
+            const existingData = userDoc.data() as UserProfile;
+            setProfile(existingData);
+            setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true });
+          }
+        } catch (error) {
+          console.error("Error fetching/creating profile:", error);
         }
       } else {
         setUser(null);
@@ -85,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [auth, db]);
 
   const login = async () => {
+    if (!auth) return;
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ hd: 'daegu.ac.kr' });
     try {
@@ -96,6 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    if (!auth) return;
     await signOut(auth);
     router.push('/login');
   };
