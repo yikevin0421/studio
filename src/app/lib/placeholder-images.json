@@ -1,0 +1,22 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero-campus",
+      "description": "Aerial view of a modern university campus",
+      "imageUrl": "https://picsum.photos/seed/daegu1/1200/600",
+      "imageHint": "university campus"
+    },
+    {
+      "id": "student-life",
+      "description": "Students studying together in a modern library",
+      "imageUrl": "https://picsum.photos/seed/daegu2/800/600",
+      "imageHint": "students studying"
+    },
+    {
+      "id": "daegu-tech",
+      "description": "Modern laboratory or technology hub",
+      "imageUrl": "https://picsum.photos/seed/daegu3/800/600",
+      "imageHint": "tech laboratory"
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+"use client"
+
+import React, { useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/lib/firebase';
+import { doc, updateDoc, increment, arrayUnion, arrayRemove, getDoc, deleteDoc } from 'firebase/firestore';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { 
+  Heart, 
+  MessageCircle, 
+  Share2, 
+  MoreVertical, 
+  Flag, 
+  Trash2,
+  Bookmark,
+  Pin
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+
+export function PostCard({ post }: { post: any }) {
+  const { profile } = useAuth();
+  const { toast } = useToast();
+  const [isLiked, setIsLiked] = useState(false); // Simplified for UI
+  const [likesCount, setLikesCount] = useState(post.likesCount || 0);
+
+  const handleLike = async () => {
+    if (!profile) return;
+    
+    // In a real app, you'd check a 'likes' subcollection or array
+    setIsLiked(!isLiked);
+    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+    
+    try {
+      const postRef = doc(db, 'posts', post.id);
+      await updateDoc(postRef, {
+        likesCount: increment(isLiked ? -1 : 1)
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!profile) return;
+    try {
+      await deleteDoc(doc(db, 'posts', post.id));
+      toast({ title: "Post Deleted" });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <Card className="shadow-sm border-2 hover:border-primary/20 transition-all">
+      <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-4">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={post.profilePicture} alt={post.username} />
+          <AvatarFallback>{post.username?.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 flex flex-col">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-primary">{post.username}</span>
+            {post.role === 'ADMIN' && (
+              <Badge className="h-5 px-1 bg-destructive text-[10px] rounded-sm">ADMIN</Badge>
+            )}
+            <span className="text-xs text-muted-foreground">
+              {post.timestamp?.toDate ? formatDistanceToNow(post.timestamp.toDate(), { addSuffix: true }) : 'just now'}
+            </span>
+          </div>
+          <Badge variant="outline" className="w-fit h-5 text-[10px] mt-0.5 px-1 font-normal opacity-70">
+            {post.category || 'General'}
+          </Badge>
+        </div>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem className="gap-2">
+              <Bookmark className="h-4 w-4" /> Save Post
+            </DropdownMenuItem>
+            {profile?.uid === post.userId && (
+              <DropdownMenuItem onClick={handleDelete} className="text-destructive gap-2">
+                <Trash2 className="h-4 w-4" /> Delete Post
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem className="text-destructive gap-2">
+              <Flag className="h-4 w-4" /> Report
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardHeader>
+      
+      <CardContent className="px-4 pb-4">
+        <p className="whitespace-pre-wrap leading-relaxed text-[15px]">
+          {post.content}
+        </p>
+        {post.image && (
+          <div className="mt-4 rounded-xl overflow-hidden border">
+            <img src={post.image} alt="Post media" className="w-full h-auto object-cover max-h-[400px]" />
+          </div>
+        )}
+      </CardContent>
+
+      <CardFooter className="p-2 px-4 border-t flex items-center justify-between">
+        <div className="flex gap-1">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className={cn("gap-2 rounded-full", isLiked && "text-destructive bg-destructive/10")} 
+            onClick={handleLike}
+          >
+            <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
+            <span className="text-xs font-semibold">{likesCount}</span>
+          </Button>
+          <Button variant="ghost" size="sm" className="gap-2 rounded-full text-muted-foreground">
+            <MessageCircle className="h-4 w-4" />
+            <span className="text-xs font-semibold">{post.commentCount || 0}</span>
+          </Button>
+        </div>
+        <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground">
+          <Share2 className="h-4 w-4" />
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
