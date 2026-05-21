@@ -19,12 +19,13 @@ import {
 import { 
   Heart, 
   MessageCircle, 
-  Share2, 
   MoreVertical, 
   Flag, 
   Trash2,
   Bookmark,
-  ExternalLink
+  ExternalLink,
+  EyeOff,
+  Eye
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -38,10 +39,11 @@ export function PostCard({ post }: { post: any }) {
   const [isSaved, setIsSaved] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likesCount || 0);
 
+  const isModerator = profile?.role === 'admin' || profile?.role === 'superadmin';
+
   useEffect(() => {
     if (!profile || !db || !post.id) return;
     
-    // Check if saved
     const checkSaved = async () => {
       const bookmarkRef = doc(db, 'users', profile.uid, 'bookmarks', post.id);
       const snapshot = await getDoc(bookmarkRef);
@@ -72,9 +74,7 @@ export function PostCard({ post }: { post: any }) {
 
   const handleSave = async () => {
     if (!profile || !db) return;
-    
     const bookmarkRef = doc(db, 'users', profile.uid, 'bookmarks', post.id);
-    
     try {
       if (isSaved) {
         await deleteDoc(bookmarkRef);
@@ -88,27 +88,29 @@ export function PostCard({ post }: { post: any }) {
         setIsSaved(true);
         toast({ title: "Post saved to bookmarks" });
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const handleDelete = async () => {
-    if (!profile || !db) return;
+    if (!db || !post.id) return;
     try {
       await deleteDoc(doc(db, 'posts', post.id));
       toast({ title: "Post Deleted" });
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   };
 
-  const handleReport = () => {
-    toast({ title: "Report received", description: "Our moderators will review this content." });
+  const toggleHide = async () => {
+    if (!db || !post.id) return;
+    try {
+      await updateDoc(doc(db, 'posts', post.id), {
+        hidden: !post.hidden
+      });
+      toast({ title: post.hidden ? "Post Restored" : "Post Hidden" });
+    } catch (e) { console.error(e); }
   };
 
   return (
-    <Card className="shadow-sm border-2 hover:border-primary/20 transition-all bg-card">
+    <Card className={cn("shadow-sm border-2 transition-all bg-card", post.hidden && "opacity-60 grayscale bg-muted/30")}>
       <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-4">
         <Link href={`/profile/${post.userId}`}>
           <Avatar className="h-10 w-10 hover:opacity-80 transition-opacity">
@@ -121,12 +123,10 @@ export function PostCard({ post }: { post: any }) {
             <Link href={`/profile/${post.userId}`} className="font-bold text-primary hover:underline">
               {post.username}
             </Link>
-            {post.role === 'ADMIN' && (
-              <Badge className="h-5 px-1 bg-destructive text-[10px] rounded-sm">ADMIN</Badge>
-            )}
             <span className="text-xs text-muted-foreground">
               {post.timestamp?.toDate ? formatDistanceToNow(post.timestamp.toDate(), { addSuffix: true }) : 'just now'}
             </span>
+            {post.hidden && <Badge variant="secondary" className="text-[10px] h-4">HIDDEN</Badge>}
           </div>
           <Badge variant="outline" className="w-fit h-5 text-[10px] mt-0.5 px-1 font-normal opacity-70">
             {post.category || 'General'}
@@ -149,14 +149,17 @@ export function PostCard({ post }: { post: any }) {
                 <ExternalLink className="h-4 w-4" /> View Profile
               </Link>
             </DropdownMenuItem>
-            {profile?.uid === post.userId && (
+            {(profile?.uid === post.userId || isModerator) && (
               <DropdownMenuItem onClick={handleDelete} className="text-destructive gap-2">
                 <Trash2 className="h-4 w-4" /> Delete Post
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={handleReport} className="text-destructive gap-2">
-              <Flag className="h-4 w-4" /> Report
-            </DropdownMenuItem>
+            {isModerator && (
+              <DropdownMenuItem onClick={toggleHide} className="gap-2">
+                {post.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                {post.hidden ? 'Restore Post' : 'Hide Post'}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
@@ -187,6 +190,28 @@ export function PostCard({ post }: { post: any }) {
             <MessageCircle className="h-4 w-4" />
             <span className="text-xs font-semibold">{post.commentCount || 0}</span>
           </Button>
+          
+          {isModerator && (
+            <div className="flex ml-4 pl-4 border-l gap-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-destructive hover:bg-destructive/10 h-8 px-2"
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-4 w-4 mr-1" /> <span className="text-[10px] font-bold">REMOVE</span>
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-muted-foreground hover:bg-secondary h-8 px-2"
+                onClick={toggleHide}
+              >
+                {post.hidden ? <Eye className="h-4 w-4 mr-1" /> : <EyeOff className="h-4 w-4 mr-1" />}
+                <span className="text-[10px] font-bold uppercase">{post.hidden ? 'RESTORE' : 'HIDE'}</span>
+              </Button>
+            </div>
+          )}
         </div>
         <Button 
           variant="ghost" 

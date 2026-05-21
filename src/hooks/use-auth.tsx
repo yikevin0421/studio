@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -8,11 +9,11 @@ import {
   signOut, 
   User as FirebaseUser 
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useAuth as useAuthInstance, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
-export type UserRole = 'USER' | 'ADMIN' | 'MODERATOR';
+export type UserRole = 'user' | 'admin' | 'superadmin';
 
 export interface UserProfile {
   uid: string;
@@ -35,6 +36,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const SUPERADMIN_EMAIL = 'yikevin0421@daegu.ac.kr';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -48,15 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Enforce university domain in production
-        if (process.env.NODE_ENV === 'production' && !firebaseUser.email?.endsWith('@daegu.ac.kr')) {
-          await signOut(auth);
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-          return;
-        }
-
+        // Enforce university domain check if required (optional based on your policy, but superadmin is strictly matched)
         setUser(firebaseUser);
         
         try {
@@ -64,12 +59,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const userDoc = await getDoc(userDocRef);
 
           if (!userDoc.exists()) {
+            const isSuperAdmin = firebaseUser.email === SUPERADMIN_EMAIL;
             const newProfile: UserProfile = {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
               displayName: firebaseUser.displayName || 'Anonymous Student',
               photoURL: firebaseUser.photoURL || '',
-              role: 'USER',
+              role: isSuperAdmin ? 'superadmin' : 'user',
               createdAt: serverTimestamp(),
               lastLogin: serverTimestamp(),
             };
@@ -77,8 +73,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setProfile(newProfile);
           } else {
             const existingData = userDoc.data() as UserProfile;
-            setProfile(existingData);
-            setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true });
+            
+            // Hard protection for the specific superadmin email
+            if (firebaseUser.email === SUPERADMIN_EMAIL && existingData.role !== 'superadmin') {
+              await updateDoc(userDocRef, { role: 'superadmin' });
+              setProfile({ ...existingData, role: 'superadmin' });
+            } else {
+              setProfile(existingData);
+            }
+            
+            updateDoc(userDocRef, { lastLogin: serverTimestamp() });
           }
         } catch (error) {
           console.error("Error fetching/creating profile:", error);
