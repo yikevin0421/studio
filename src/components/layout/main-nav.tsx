@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
+import { useLanguage } from '@/hooks/use-language';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,10 +13,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bell, LogOut, User, Settings, ShieldCheck } from 'lucide-react';
+import { Bell, LogOut, User, Settings, ShieldCheck, Languages } from 'lucide-react';
 
 export function MainNav() {
   const { profile, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
 
   return (
     <nav className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -31,8 +33,25 @@ export function MainNav() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Languages className="h-4 w-4" />
+                <span className="hidden sm:inline">{language === 'en' ? 'EN' : 'KO'}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setLanguage('en')} className={language === 'en' ? 'bg-accent' : ''}>
+                {t('lang.en')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLanguage('ko')} className={language === 'ko' ? 'bg-accent' : ''}>
+                {t('lang.ko')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button variant="ghost" size="icon" asChild className="hidden sm:flex">
             <Link href="/notifications">
               <Bell className="h-5 w-5" />
             </Link>
@@ -79,7 +98,7 @@ export function MainNav() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => logout()} className="text-destructive focus:bg-destructive/10">
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  <span>{t('nav.logout')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
