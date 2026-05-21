@@ -29,9 +29,9 @@ service cloud.firestore {
       // Users can only read and write their own private data
       allow read, write: if isOwner(userId);
       
-      // Superadmin can change roles, but cannot demote/delete the primary superadmin
+      // Superadmin can change roles, but cannot demote/delete the primary superadmins
       allow update: if hasRole('superadmin') 
-        && resource.data.email != 'yikevin0421@daegu.ac.kr'
+        && !(resource.data.email in ['yikevin0421@daegu.ac.kr', 'rexshort160@daegu.ac.kr'])
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
         && (request.resource.data.role == 'admin' || request.resource.data.role == 'user');
         

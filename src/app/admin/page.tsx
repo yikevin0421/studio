@@ -2,7 +2,7 @@
 "use client"
 
 import { AuthenticatedLayout } from '@/components/layout/authenticated-layout';
-import { useAuth, SUPERADMIN_EMAIL } from '@/hooks/use-auth';
+import { useAuth, SUPERADMIN_EMAILS } from '@/hooks/use-auth';
 import { useFirestore } from '@/firebase';
 import { collection, query, orderBy, onSnapshot, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
@@ -211,7 +211,7 @@ export default function AdminDashboardPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            {u.email !== SUPERADMIN_EMAIL && (
+                            {!SUPERADMIN_EMAILS.includes(u.email) && (
                               <div className="flex justify-end gap-2">
                                 {u.role === 'user' ? (
                                   <Button size="sm" className="gap-1 h-8" onClick={() => handleRoleChange(u.id, 'admin', u.email)}>

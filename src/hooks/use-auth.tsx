@@ -38,7 +38,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const SUPERADMIN_EMAIL = 'yikevin0421@daegu.ac.kr';
+// List of protected superadmin accounts
+export const SUPERADMIN_EMAILS = [
+  'yikevin0421@daegu.ac.kr',
+  'rexshort160@daegu.ac.kr'
+];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -57,14 +61,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         getDoc(userDocRef).then(async (userDoc) => {
+          const isSuperAdminAccount = firebaseUser.email && SUPERADMIN_EMAILS.includes(firebaseUser.email);
+          
           if (!userDoc.exists()) {
-            const isSuperAdmin = firebaseUser.email === SUPERADMIN_EMAIL;
             const newProfile: UserProfile = {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
               displayName: firebaseUser.displayName || 'Anonymous Student',
               photoURL: firebaseUser.photoURL || '',
-              role: isSuperAdmin ? 'superadmin' : 'user',
+              role: isSuperAdminAccount ? 'superadmin' : 'user',
               createdAt: serverTimestamp(),
               lastLogin: serverTimestamp(),
             };
@@ -79,7 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setProfile(newProfile);
           } else {
             const existingData = userDoc.data() as UserProfile;
-            if (firebaseUser.email === SUPERADMIN_EMAIL && existingData.role !== 'superadmin') {
+            // Force superadmin role if email is in the protected list
+            if (isSuperAdminAccount && existingData.role !== 'superadmin') {
               updateDoc(userDocRef, { role: 'superadmin' }).catch(async () => {
                 const permissionError = new FirestorePermissionError({
                   path: userDocRef.path,
