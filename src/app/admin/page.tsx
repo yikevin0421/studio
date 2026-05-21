@@ -2,9 +2,9 @@
 "use client"
 
 import { AuthenticatedLayout } from '@/components/layout/authenticated-layout';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, SUPERADMIN_EMAIL } from '@/hooks/use-auth';
 import { useFirestore } from '@/firebase';
-import { collection, query, where, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,26 +13,26 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ShieldAlert, 
-  Loader2, 
   Flag, 
   UserCog, 
-  MessageSquare, 
   ArrowUpCircle, 
   ArrowDownCircle,
-  EyeOff,
-  Trash2
+  Trash2,
+  ExternalLink
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function AdminDashboardPage() {
   const { profile } = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
-  const [flaggedPosts, setFlaggedPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const isSuperAdmin = profile?.role === 'superadmin';
   const isModerator = profile?.role === 'admin' || isSuperAdmin;
@@ -40,17 +40,15 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!db || !isModerator) return;
 
-    // Listen for all posts (moderators only)
     const postsQuery = query(
       collection(db, 'posts'),
       orderBy('timestamp', 'desc')
     );
 
     const unsubscribePosts = onSnapshot(postsQuery, (snapshot) => {
-      setFlaggedPosts(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      setPosts(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
     });
 
-    // Listen for users (Superadmin only)
     let unsubscribeUsers = () => {};
     if (isSuperAdmin) {
       const usersQuery = query(collection(db, 'users'), orderBy('email'));
@@ -59,12 +57,11 @@ export default function AdminDashboardPage() {
       });
     }
 
-    setLoading(false);
     return () => {
       unsubscribePosts();
       unsubscribeUsers();
     };
-  }, [db, profile]);
+  }, [db, isModerator, isSuperAdmin]);
 
   const handleRoleChange = async (userId: string, newRole: string, email: string) => {
     if (!db || !isSuperAdmin) return;
@@ -74,12 +71,31 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    try {
-      await updateDoc(doc(db, 'users', userId), { role: newRole });
-      toast({ title: "Role Updated", description: `${email} is now a ${newRole}.` });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to update role." });
-    }
+    const userRef = doc(db, 'users', userId);
+    updateDoc(userRef, { role: newRole })
+      .then(() => {
+        toast({ title: "Role Updated", description: `${email} is now a ${newRole}.` });
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: userRef.path,
+          operation: 'update',
+          requestResourceData: { role: newRole },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
+  };
+
+  const handleDeletePost = (postId: string) => {
+    if (!db) return;
+    const postRef = doc(db, 'posts', postId);
+    deleteDoc(postRef).catch(async () => {
+      const permissionError = new FirestorePermissionError({
+        path: postRef.path,
+        operation: 'delete',
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   if (!isModerator) {
@@ -135,22 +151,28 @@ export default function AdminDashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {flaggedPosts.map((post) => (
+                    {posts.map((post) => (
                       <TableRow key={post.id} className={post.hidden ? "bg-muted/30 opacity-60" : ""}>
                         <TableCell>
-                          {post.hidden ? <Badge variant="secondary">Hidden</Badge> : <Badge className="bg-green-500">Active</Badge>}
+                          {post.hidden ? <Badge variant="secondary">Hidden</Badge> : <Badge className="bg-green-500 text-white">Active</Badge>}
                         </TableCell>
                         <TableCell className="font-medium">{post.username}</TableCell>
                         <TableCell className="max-w-[300px] truncate italic">"{post.content}"</TableCell>
                         <TableCell className="text-xs">
-                          {post.timestamp ? formatDistanceToNow(post.timestamp.toDate()) : 'Recently'}
+                          {post.timestamp?.toDate ? formatDistanceToNow(post.timestamp.toDate()) : 'Recently'}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" asChild>
-                              <Link href={`/profile/${post.userId}`}><UserCog className="h-4 w-4" /></Link>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" asChild title="View Post">
+                              <Link href={`/post/${post.id}`}><ExternalLink className="h-4 w-4" /></Link>
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive">
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => handleDeletePost(post.id)}
+                              title="Delete Post"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>

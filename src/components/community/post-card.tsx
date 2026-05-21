@@ -20,7 +20,6 @@ import {
   Heart, 
   MessageCircle, 
   MoreVertical, 
-  Flag, 
   Trash2,
   Bookmark,
   ExternalLink,
@@ -30,6 +29,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export function PostCard({ post }: { post: any }) {
   const { profile } = useAuth();
@@ -52,7 +53,7 @@ export function PostCard({ post }: { post: any }) {
     checkSaved();
   }, [profile, db, post.id]);
 
-  const handleLike = async () => {
+  const handleLike = () => {
     if (!profile || !db) {
       toast({ title: "Please login first", variant: "destructive" });
       return;
@@ -62,51 +63,83 @@ export function PostCard({ post }: { post: any }) {
     setIsLiked(newLikedState);
     setLikesCount(prev => newLikedState ? prev + 1 : prev - 1);
     
-    try {
-      const postRef = doc(db, 'posts', post.id);
-      updateDoc(postRef, {
-        likesCount: increment(newLikedState ? 1 : -1)
+    const postRef = doc(db, 'posts', post.id);
+    updateDoc(postRef, {
+      likesCount: increment(newLikedState ? 1 : -1)
+    }).catch(async () => {
+      const permissionError = new FirestorePermissionError({
+        path: postRef.path,
+        operation: 'update',
+        requestResourceData: { likesCount: 'increment' },
       });
-    } catch (e) {
-      console.error(e);
+      errorEmitter.emit('permission-error', permissionError);
+    });
+  };
+
+  const handleSave = () => {
+    if (!profile || !db) return;
+    const bookmarkRef = doc(db, 'users', profile.uid, 'bookmarks', post.id);
+    
+    if (isSaved) {
+      deleteDoc(bookmarkRef).then(() => {
+        setIsSaved(false);
+        toast({ title: "Post removed from bookmarks" });
+      }).catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: bookmarkRef.path,
+          operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
+    } else {
+      const data = {
+        postId: post.id,
+        savedAt: new Date().toISOString()
+      };
+      setDoc(bookmarkRef, data).then(() => {
+        setIsSaved(true);
+        toast({ title: "Post saved to bookmarks" });
+      }).catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: bookmarkRef.path,
+          operation: 'create',
+          requestResourceData: data,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
     }
   };
 
-  const handleSave = async () => {
-    if (!profile || !db) return;
-    const bookmarkRef = doc(db, 'users', profile.uid, 'bookmarks', post.id);
-    try {
-      if (isSaved) {
-        await deleteDoc(bookmarkRef);
-        setIsSaved(false);
-        toast({ title: "Post removed from bookmarks" });
-      } else {
-        await setDoc(bookmarkRef, {
-          postId: post.id,
-          savedAt: new Date().toISOString()
-        });
-        setIsSaved(true);
-        toast({ title: "Post saved to bookmarks" });
-      }
-    } catch (e) { console.error(e); }
-  };
-
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!db || !post.id) return;
-    try {
-      await deleteDoc(doc(db, 'posts', post.id));
+    const postRef = doc(db, 'posts', post.id);
+    deleteDoc(postRef).then(() => {
       toast({ title: "Post Deleted" });
-    } catch (e) { console.error(e); }
+    }).catch(async () => {
+      const permissionError = new FirestorePermissionError({
+        path: postRef.path,
+        operation: 'delete',
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
-  const toggleHide = async () => {
+  const toggleHide = () => {
     if (!db || !post.id) return;
-    try {
-      await updateDoc(doc(db, 'posts', post.id), {
-        hidden: !post.hidden
+    const postRef = doc(db, 'posts', post.id);
+    const hiddenState = !post.hidden;
+    updateDoc(postRef, {
+      hidden: hiddenState
+    }).then(() => {
+      toast({ title: hiddenState ? "Post Hidden" : "Post Restored" });
+    }).catch(async () => {
+      const permissionError = new FirestorePermissionError({
+        path: postRef.path,
+        operation: 'update',
+        requestResourceData: { hidden: hiddenState },
       });
-      toast({ title: post.hidden ? "Post Restored" : "Post Hidden" });
-    } catch (e) { console.error(e); }
+      errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   return (
@@ -145,8 +178,8 @@ export function PostCard({ post }: { post: any }) {
               {isSaved ? 'Unsave Post' : 'Save Post'}
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="gap-2">
-              <Link href={`/profile/${post.userId}`}>
-                <ExternalLink className="h-4 w-4" /> View Profile
+              <Link href={`/post/${post.id}`}>
+                <ExternalLink className="h-4 w-4" /> View Full Post
               </Link>
             </DropdownMenuItem>
             {(profile?.uid === post.userId || isModerator) && (
@@ -186,9 +219,11 @@ export function PostCard({ post }: { post: any }) {
             <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
             <span className="text-xs font-semibold">{likesCount}</span>
           </Button>
-          <Button variant="ghost" size="sm" className="gap-2 rounded-full text-muted-foreground">
-            <MessageCircle className="h-4 w-4" />
-            <span className="text-xs font-semibold">{post.commentCount || 0}</span>
+          <Button variant="ghost" size="sm" className="gap-2 rounded-full text-muted-foreground" asChild>
+            <Link href={`/post/${post.id}`}>
+              <MessageCircle className="h-4 w-4" />
+              <span className="text-xs font-semibold">{post.commentCount || 0}</span>
+            </Link>
           </Button>
           
           {isModerator && (

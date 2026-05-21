@@ -16,11 +16,13 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, User, Bell, Shield, Languages, Loader2, Save } from 'lucide-react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function SettingsPage() {
   const { profile } = useAuth();
   const db = useFirestore();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const { toast } = useToast();
   const [bio, setBio] = useState(profile?.bio || '');
   const [displayName, setDisplayName] = useState(profile?.displayName || '');
@@ -29,17 +31,23 @@ export default function SettingsPage() {
   const handleSaveProfile = async () => {
     if (!profile || !db) return;
     setIsSubmitting(true);
-    try {
-      await updateDoc(doc(db, 'users', profile.uid), {
-        bio,
-        displayName
-      });
-      toast({ title: "Profile updated successfully" });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Failed to update profile" });
-    } finally {
-      setIsSubmitting(false);
-    }
+    
+    const userRef = doc(db, 'users', profile.uid);
+    const updateData = { bio, displayName };
+
+    updateDoc(userRef, updateData)
+      .then(() => {
+        toast({ title: "Profile updated successfully" });
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: userRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => setIsSubmitting(false));
   };
 
   return (
@@ -69,7 +77,6 @@ export default function SettingsPage() {
           </div>
 
           <div className="md:col-span-2 space-y-8">
-            {/* Profile Section */}
             <Card className="border-2 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -106,7 +113,6 @@ export default function SettingsPage() {
               </CardFooter>
             </Card>
 
-            {/* Application Section */}
             <Card className="border-2 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

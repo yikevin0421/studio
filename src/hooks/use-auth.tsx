@@ -12,6 +12,8 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useAuth as useAuthInstance, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export type UserRole = 'user' | 'admin' | 'superadmin';
 
@@ -36,7 +38,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const SUPERADMIN_EMAIL = 'yikevin0421@daegu.ac.kr';
+export const SUPERADMIN_EMAIL = 'yikevin0421@daegu.ac.kr';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -51,13 +53,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Enforce university domain check if required (optional based on your policy, but superadmin is strictly matched)
         setUser(firebaseUser);
         
-        try {
-          const userDocRef = doc(db, 'users', firebaseUser.uid);
-          const userDoc = await getDoc(userDocRef);
-
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        getDoc(userDocRef).then(async (userDoc) => {
           if (!userDoc.exists()) {
             const isSuperAdmin = firebaseUser.email === SUPERADMIN_EMAIL;
             const newProfile: UserProfile = {
@@ -69,24 +68,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               createdAt: serverTimestamp(),
               lastLogin: serverTimestamp(),
             };
-            await setDoc(userDocRef, newProfile);
+            setDoc(userDocRef, newProfile).catch(async () => {
+              const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'create',
+                requestResourceData: newProfile,
+              });
+              errorEmitter.emit('permission-error', permissionError);
+            });
             setProfile(newProfile);
           } else {
             const existingData = userDoc.data() as UserProfile;
-            
-            // Hard protection for the specific superadmin email
             if (firebaseUser.email === SUPERADMIN_EMAIL && existingData.role !== 'superadmin') {
-              await updateDoc(userDocRef, { role: 'superadmin' });
+              updateDoc(userDocRef, { role: 'superadmin' }).catch(async () => {
+                const permissionError = new FirestorePermissionError({
+                  path: userDocRef.path,
+                  operation: 'update',
+                  requestResourceData: { role: 'superadmin' },
+                });
+                errorEmitter.emit('permission-error', permissionError);
+              });
               setProfile({ ...existingData, role: 'superadmin' });
             } else {
               setProfile(existingData);
             }
-            
-            updateDoc(userDocRef, { lastLogin: serverTimestamp() });
+            updateDoc(userDocRef, { lastLogin: serverTimestamp() }).catch(() => {});
           }
-        } catch (error) {
-          console.error("Error fetching/creating profile:", error);
-        }
+        });
       } else {
         setUser(null);
         setProfile(null);
