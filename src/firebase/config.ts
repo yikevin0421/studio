@@ -1,3 +1,4 @@
+
 'use client';
 
 // Note: These environment variables must be prefixed with NEXT_PUBLIC_ to be accessible on the client
@@ -8,4 +9,11 @@ export const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "",
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ""
+};
+
+/**
+ * Validates if the minimum required Firebase configuration is present.
+ */
+export const isConfigValid = () => {
+  return !!firebaseConfig.apiKey && firebaseConfig.apiKey !== "undefined" && firebaseConfig.apiKey.length > 10;
 };
