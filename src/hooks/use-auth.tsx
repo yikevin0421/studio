@@ -41,7 +41,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // List of protected superadmin accounts
 export const SUPERADMIN_EMAILS = [
   'yikevin0421@daegu.ac.kr',
-  'rexshort160@daegu.ac.kr'
+  'rexshort160@daegu.ac.kr',
+  'sejin0604@daegu.ac.kr'
 ];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
