@@ -37,6 +37,16 @@
         "image": { "type": "string" }
       },
       "required": ["userId", "content", "timestamp"]
+    },
+    "Bookmark": {
+      "title": "Saved Post",
+      "description": "A reference to a post saved by a user.",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "savedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["postId", "savedAt"]
     }
   },
   "auth": {
@@ -50,6 +60,10 @@
     "/posts/{postId}": {
       "schema": "Post",
       "description": "Collection of community posts."
+    },
+    "/users/{userId}/bookmarks/{postId}": {
+      "schema": "Bookmark",
+      "description": "Collection of posts saved by the user."
     }
   }
 }
