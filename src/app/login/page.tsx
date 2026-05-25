@@ -1,13 +1,13 @@
 "use client"
 
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShieldCheck, Mail, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
-  const { login, loading } = useAuth();
+  const router = useRouter();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 sm:p-0">
@@ -30,6 +30,7 @@ export default function LoginPage() {
               Sign in with your university account to join the community.
             </CardDescription>
           </CardHeader>
+
           <CardContent className="space-y-6 pt-4">
             <div className="rounded-lg bg-primary/5 p-4 border border-primary/10">
               <div className="flex items-start gap-3">
@@ -41,9 +42,8 @@ export default function LoginPage() {
             </div>
 
             <Button 
-              onClick={() => login()} 
-              className="w-full h-14 text-lg font-semibold gap-3" 
-              disabled={loading}
+              onClick={() => router.push('/dashboard')} 
+              className="w-full h-14 text-lg font-semibold gap-3"
             >
               <img 
                 src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
@@ -53,13 +53,14 @@ export default function LoginPage() {
               Continue with Google
             </Button>
           </CardContent>
+
           <CardFooter className="flex flex-col gap-4 text-center">
             <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center uppercase tracking-widest">
               <Mail className="h-3 w-3" />
-              Verified Enrollment Required
+              Demo Login Mode
             </div>
             <p className="text-xs text-muted-foreground px-4">
-              By continuing, you agree to the Daegu Pulse Community Guidelines and Privacy Policy.
+              This button currently redirects to the dashboard for local demo testing.
             </p>
           </CardFooter>
         </Card>
