@@ -10,9 +10,6 @@ import { TipEngagementActions } from "@/components/tip-engagement-actions";
 import {
   MessageSquare,
   Pencil,
-  ThumbsUp,
-  BookMarked,
-    CheckCircle2,
   MoreHorizontal,
   Trash2,
   Save,
@@ -32,12 +29,14 @@ type MyPost = {
   createdAtMs?: number;
   lastVerified?: string;
   status?: string;
+  imageUrl?: string;
 };
 
 export default function MyPostsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [myPosts, setMyPosts] = useState<MyPost[]>([]);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
   const [editingText, setEditingText] = useState("");
   const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
 
@@ -65,71 +64,40 @@ export default function MyPostsPage() {
     localStorage.setItem("student-square-posts", JSON.stringify(posts));
   };
 
-  const handleUseful = (postId: string) => {
-    savePosts(
-      myPosts.map((post) =>
-        post.id === postId ? { ...post, useful: post.useful + 1 } : post
-      )
-    );
-  };
-
-  const handleBookmark = (postId: string) => {
-    savePosts(
-      myPosts.map((post) =>
-        post.id === postId ? { ...post, bookmarks: post.bookmarks + 1 } : post
-      )
-    );
-  };
-
-  const handleVerify = (postId: string) => {
-    const today = new Date().toLocaleDateString("ko-KR");
-
-    savePosts(
-      myPosts.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              verified: (post.verified ?? 0) + 1,
-              lastVerified: today,
-              status: "최근 검증됨",
-            }
-          : post
-      )
-    );
-  };
-
   const handleEditStart = (post: MyPost) => {
     setEditingPostId(post.id);
+    setEditingTitle(post.title);
     setEditingText(post.summary);
     setOpenMenuPostId(null);
   };
 
   const handleEditCancel = () => {
     setEditingPostId(null);
+    setEditingTitle("");
     setEditingText("");
   };
 
   const handleEditSave = (postId: string) => {
+    const trimmedTitle = editingTitle.trim();
     const trimmedText = editingText.trim();
 
-    if (!trimmedText) return;
+    if (!trimmedTitle || !trimmedText) return;
 
     savePosts(
       myPosts.map((post) =>
         post.id === postId
           ? {
               ...post,
-              title:
-                trimmedText.length > 40
-                  ? `${trimmedText.slice(0, 40)}...`
-                  : trimmedText,
+              title: trimmedTitle,
               summary: trimmedText,
+              imageUrl: post.imageUrl,
             }
           : post
       )
     );
 
     setEditingPostId(null);
+    setEditingTitle("");
     setEditingText("");
   };
 
@@ -179,25 +147,55 @@ export default function MyPostsPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="secondary">{post.tipCategory ?? post.category}</Badge>
-                          <Badge variant="outline">{post.status ?? "방금 작성됨"}</Badge>
+                          <Badge variant="secondary">
+                            {post.tipCategory ?? post.category}
+                          </Badge>
+                          <Badge variant="outline">
+                            {post.status ?? "방금 작성됨"}
+                          </Badge>
                         </div>
 
                         {isEditing ? (
-                          <textarea
-                            value={editingText}
-                            onChange={(event) => setEditingText(event.target.value)}
-                            maxLength={1000}
-                            className="min-h-[140px] w-full resize-none rounded-md border bg-background p-3 text-sm outline-none"
-                          />
+                          <div className="space-y-3">
+                            <input
+                              value={editingTitle}
+                              onChange={(event) => setEditingTitle(event.target.value)}
+                              maxLength={80}
+                              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none"
+                            />
+
+                            <textarea
+                              value={editingText}
+                              onChange={(event) => setEditingText(event.target.value)}
+                              maxLength={1000}
+                              className="min-h-[140px] w-full resize-none rounded-md border bg-background p-3 text-sm outline-none"
+                            />
+
+                            {post.imageUrl && (
+                              <img
+                                src={post.imageUrl}
+                                alt="첨부 이미지"
+                                className="max-h-[320px] w-full rounded-xl border object-cover"
+                              />
+                            )}
+                          </div>
                         ) : (
                           <>
                             <CardTitle className="text-lg leading-relaxed">
                               {post.title}
                             </CardTitle>
+
                             <CardDescription className="leading-relaxed">
                               {post.summary}
                             </CardDescription>
+
+                            {post.imageUrl && (
+                              <img
+                                src={post.imageUrl}
+                                alt="첨부 이미지"
+                                className="mt-3 max-h-[320px] w-full rounded-xl border object-cover"
+                              />
+                            )}
                           </>
                         )}
                       </div>
@@ -264,7 +262,9 @@ export default function MyPostsPage() {
                         createdAtMs={post.createdAtMs}
                         lastVerified={post.lastVerified ?? "-"}
                         status={post.status ?? "방금 작성됨"}
-                      />)}
+                        imageUrl={post.imageUrl}
+                      />
+                    )}
                   </CardContent>
                 </Card>
               );

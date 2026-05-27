@@ -24,6 +24,7 @@ type BookmarkPost = {
   createdAtMs?: number;
   lastVerified?: string;
   status?: string;
+  imageUrl?: string;
 };
 
 type TipEngagementActionsProps = {
@@ -38,6 +39,7 @@ type TipEngagementActionsProps = {
   createdAtMs?: number;
   lastVerified?: string;
   status?: string;
+  imageUrl?: string;
 };
 
 const defaultVerificationItems = [
@@ -60,6 +62,7 @@ export function TipEngagementActions({
   createdAtMs,
   lastVerified = "-",
   status = "현재 유효",
+  imageUrl,
 }: TipEngagementActionsProps) {
   const [usefulCount, setUsefulCount] = useState(useful);
   const [bookmarkCount, setBookmarkCount] = useState(bookmarks);
@@ -129,6 +132,7 @@ export function TipEngagementActions({
       createdAtMs,
       lastVerified,
       status,
+      imageUrl,
     };
 
     const nextBookmarks = [

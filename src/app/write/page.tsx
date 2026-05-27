@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ImagePlus, Pencil, Send } from "lucide-react";
+import { ArrowLeft, ImagePlus, Pencil, Send, X } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 
 type StoredPost = {
@@ -22,6 +22,7 @@ type StoredPost = {
   createdAtMs: number;
   lastVerified: string;
   status: string;
+  imageUrl?: string;
 };
 
 const tipCategories = [
@@ -36,12 +37,28 @@ const tipCategories = [
 export default function WritePage() {
   const router = useRouter();
   const { language } = useLanguage();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [title, setTitle] = useState("");
   const [tipCategory, setTipCategory] = useState("학교생활");
   const [content, setContent] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | undefined>();
 
   const isKorean = language === "ko";
+
+  const handleImageSelect = (file: File | undefined) => {
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setImageUrl(reader.result);
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = () => {
     const trimmedTitle = title.trim();
@@ -70,6 +87,7 @@ export default function WritePage() {
       createdAtMs: now.getTime(),
       lastVerified: now.toLocaleDateString("ko-KR"),
       status: "방금 작성됨",
+      imageUrl,
     };
 
     const savedPosts = JSON.parse(
@@ -84,6 +102,7 @@ export default function WritePage() {
     setTitle("");
     setTipCategory("학교생활");
     setContent("");
+    setImageUrl(undefined);
     router.push("/community");
   };
 
@@ -160,8 +179,40 @@ export default function WritePage() {
               </p>
             </div>
 
+            {imageUrl && (
+              <div className="relative overflow-hidden rounded-xl border">
+                <img
+                  src={imageUrl}
+                  alt="첨부 이미지 미리보기"
+                  className="max-h-[320px] w-full object-cover"
+                />
+
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute right-3 top-3"
+                  onClick={() => setImageUrl(undefined)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
             <div className="flex items-center justify-between border-t pt-4">
-              <Button variant="ghost" size="sm" type="button">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => handleImageSelect(event.target.files?.[0])}
+              />
+
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <ImagePlus className="mr-2 h-4 w-4" />
                 {isKorean ? "이미지" : "Image"}
               </Button>

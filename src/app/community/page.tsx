@@ -29,6 +29,7 @@ type CommunityTip = {
   createdAtMs: number;
   lastVerified: string;
   status: string;
+  imageUrl?: string;
   isMine?: boolean;
 };
 
@@ -211,12 +212,22 @@ export default function CommunityPage() {
                       </div>
 
                       {isEditing ? (
-                        <textarea
-                          value={editingText}
-                          onChange={(event) => setEditingText(event.target.value)}
-                          maxLength={1000}
-                          className="min-h-[140px] w-full resize-none rounded-md border bg-background p-3 text-sm outline-none"
-                        />
+                        <div className="space-y-3">
+                          <textarea
+                            value={editingText}
+                            onChange={(event) => setEditingText(event.target.value)}
+                            maxLength={1000}
+                            className="min-h-[140px] w-full resize-none rounded-md border bg-background p-3 text-sm outline-none"
+                          />
+
+                          {tip.imageUrl && (
+                            <img
+                              src={tip.imageUrl}
+                              alt="첨부 이미지"
+                              className="max-h-[320px] w-full rounded-xl border object-cover"
+                            />
+                          )}
+                        </div>
                       ) : (
                         <>
                           <CardTitle className="text-lg leading-relaxed">
@@ -226,6 +237,14 @@ export default function CommunityPage() {
                           <CardDescription className="leading-relaxed">
                             {displaySummary}
                           </CardDescription>
+
+                          {tip.imageUrl && (
+                            <img
+                              src={tip.imageUrl}
+                              alt="첨부 이미지"
+                              className="mt-3 max-h-[320px] w-full rounded-xl border object-cover"
+                            />
+                          )}
 
                           {shouldTruncate && (
                             <Button
@@ -291,6 +310,7 @@ export default function CommunityPage() {
                       createdAtMs={tip.createdAtMs}
                       lastVerified={tip.lastVerified ?? "-"}
                       status={tip.status}
+                      imageUrl={tip.imageUrl}
                     />
                   )}
                 </CardContent>

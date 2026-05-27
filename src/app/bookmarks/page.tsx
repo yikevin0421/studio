@@ -20,6 +20,7 @@ type BookmarkPost = {
   createdAtMs?: number;
   lastVerified?: string;
   status?: string;
+  imageUrl?: string;
 };
 
 export default function BookmarksPage() {
@@ -62,6 +63,14 @@ export default function BookmarksPage() {
                     <CardDescription className="leading-relaxed">
                       {post.summary}
                     </CardDescription>
+
+                    {post.imageUrl && (
+                      <img
+                        src={post.imageUrl}
+                        alt="첨부 이미지"
+                        className="mt-3 max-h-[320px] w-full rounded-xl border object-cover"
+                      />
+                    )}
                   </div>
                 </CardHeader>
 
@@ -78,6 +87,7 @@ export default function BookmarksPage() {
                     createdAtMs={post.createdAtMs}
                     lastVerified={post.lastVerified ?? "-"}
                     status={post.status ?? "현재 유효"}
+                    imageUrl={post.imageUrl}
                   />
                 </CardContent>
               </Card>
