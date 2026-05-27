@@ -6,13 +6,13 @@ import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { TipEngagementActions } from "@/components/tip-engagement-actions";
 import {
   MessageSquare,
   Pencil,
   ThumbsUp,
   BookMarked,
-  Clock3,
-  CheckCircle2,
+    CheckCircle2,
   MoreHorizontal,
   Trash2,
   Save,
@@ -251,28 +251,19 @@ export default function MyPostsPage() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                        <Button variant="ghost" size="sm" onClick={() => handleUseful(post.id)}>
-                          <ThumbsUp className="mr-1 h-4 w-4" />
-                          유용해요 {post.useful}
-                        </Button>
-
-                        <Button variant="ghost" size="sm" onClick={() => handleBookmark(post.id)}>
-                          <BookMarked className="mr-1 h-4 w-4" />
-                          북마크 {post.bookmarks}
-                        </Button>
-
-                        <Button variant="ghost" size="sm" onClick={() => handleVerify(post.id)}>
-                          <CheckCircle2 className="mr-1 h-4 w-4" />
-                          검증 {post.verified ?? 0}명
-                        </Button>
-
-                        <span className="flex items-center gap-1 px-2 py-1.5">
-                          <Clock3 className="h-4 w-4" />
-                          최근 검증일 {post.lastVerified ?? "-"}
-                        </span>
-                      </div>
-                    )}
+                      <TipEngagementActions
+                        postId={tip.id}
+                        title={tip.title}
+                        summary={tip.summary}
+                        category={tip.category}
+                        useful={tip.useful}
+                        bookmarks={tip.bookmarks}
+                        verified={tip.verified ?? 0}
+                        createdAt={tip.createdAt}
+                        createdAtMs={tip.createdAtMs}
+                        lastVerified={tip.lastVerified ?? "-"}
+                        status={tip.status}
+                      />)}
                   </CardContent>
                 </Card>
               );

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TipEngagementActions } from "@/components/tip-engagement-actions";
 import { Button } from "@/components/ui/button";
 import { TipActionMenu } from "@/components/tip-action-menu";
 import {
@@ -12,8 +13,7 @@ import {
   ThumbsUp,
   BookMarked,
   CheckCircle2,
-  Clock3,
-  Save,
+    Save,
   X,
   ChevronDown,
   ChevronUp,
@@ -281,27 +281,12 @@ export default function CommunityPage() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <ThumbsUp className="h-4 w-4" />
-                        유용해요 {tip.useful}
-                      </span>
-
-                      <span className="flex items-center gap-1">
-                        <BookMarked className="h-4 w-4" />
-                        북마크 {tip.bookmarks}
-                      </span>
-
-                      <span className="flex items-center gap-1">
-                        <CheckCircle2 className="h-4 w-4" />
-                        검증 {tip.verified}명
-                      </span>
-
-                      <span className="flex items-center gap-1">
-                        <Clock3 className="h-4 w-4" />
-                        최근 검증일 {tip.lastVerified}
-                      </span>
-                    </div>
+                    <TipEngagementActions
+                      useful={tip.useful}
+                      bookmarks={tip.bookmarks}
+                      verified={tip.verified ?? 0}
+                      lastVerified={tip.lastVerified ?? "-"}
+                    />
                   )}
                 </CardContent>
               </Card>
