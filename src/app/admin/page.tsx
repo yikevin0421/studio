@@ -1,6 +1,7 @@
 
 "use client"
 
+import { Suspense } from "react";
 import { AuthenticatedLayout } from '@/components/layout/authenticated-layout';
 import { useAuth, SUPERADMIN_EMAILS } from '@/hooks/use-auth';
 import { useFirestore } from '@/firebase';
@@ -27,7 +28,7 @@ import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-export default function AdminDashboardPage() {
+function AdminDashboardPageContent() {
   const { profile } = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
@@ -236,5 +237,20 @@ export default function AdminDashboardPage() {
         </Tabs>
       </div>
     </AuthenticatedLayout>
+  );
+}
+
+
+export default function AdminDashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen px-6 py-8">
+          불러오는 중...
+        </main>
+      }
+    >
+      <AdminDashboardPageContent />
+    </Suspense>
   );
 }
