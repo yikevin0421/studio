@@ -42,7 +42,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const SUPERADMIN_EMAILS = [
   'yikevin0421@daegu.ac.kr',
   'rexshort160@daegu.ac.kr',
-  'sejin0604@daegu.ac.kr'
+  'sejin0604@daegu.ac.kr',
+  'rexshort160@gmail.com'
 ];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -115,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async () => {
     if (!auth) return;
     const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ hd: 'daegu.ac.kr' });
+    //provider.setCustomParameters({ hd: 'daegu.ac.kr' });
     try {
       await signInWithPopup(auth, provider);
       router.push('/dashboard');
