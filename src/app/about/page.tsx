@@ -1,18 +1,25 @@
 "use client"
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 
 export default function AboutPage() {
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from");
+
+  const backHref = from === "dashboard" ? "/dashboard" : "/";
+  const backText = from === "dashboard" ? "메인으로 돌아가기" : "홈페이지로 돌아가기";
+
   return (
     <main className="min-h-screen bg-[#F7FAF6] text-[#102A1F]">
       <div className="mx-auto max-w-5xl px-6 py-8">
         <Link
-          href="/"
+          href={backHref}
           className="inline-flex items-center gap-2 text-sm font-medium text-[#064420] hover:text-[#006B3F]"
         >
           <ArrowLeft className="h-4 w-4" />
-          메인으로 돌아가기
+          {backText}
         </Link>
 
         <section className="mt-16 text-center">

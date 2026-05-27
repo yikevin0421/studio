@@ -21,6 +21,8 @@ type BookmarkPost = {
   lastVerified?: string;
   status?: string;
   imageUrl?: string;
+  authorName?: string;
+  authorNumber?: number;
 };
 
 export default function BookmarksPage() {
@@ -76,6 +78,10 @@ export default function BookmarksPage() {
                       </Badge>
                     )}
 
+                    <p className="text-xs text-muted-foreground">
+                      {post.authorName ?? "꿀팁러 #0000"}
+                    </p>
+
                     <CardTitle className="text-lg leading-relaxed">
                       {post.title}
                     </CardTitle>
@@ -108,6 +114,8 @@ export default function BookmarksPage() {
                     lastVerified={post.lastVerified ?? "-"}
                     status={post.status ?? "현재 유효"}
                     imageUrl={post.imageUrl}
+                    authorName={post.authorName}
+                    authorNumber={post.authorNumber}
                   />
                 </CardContent>
               </Card>

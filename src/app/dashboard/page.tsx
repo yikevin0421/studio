@@ -1,20 +1,17 @@
 "use client"
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TipActionMenu } from "@/components/tip-action-menu";
 import { Button } from "@/components/ui/button";
+import { TipEngagementActions } from "@/components/tip-engagement-actions";
 import {
   Search,
   Pencil,
   BookMarked,
   RefreshCw,
-  ThumbsUp,
-  CheckCircle2,
-  Clock3,
   Flame,
   Star,
   ArchiveX,
@@ -28,14 +25,25 @@ type Tip = {
   summary: string;
   detail: string;
   category: string;
+  tipCategory?: string;
   useful: number;
+  bookmarks: number;
   verified: number;
+  createdAt?: string;
+  createdAtMs?: number;
   lastVerified: string;
-  isMine?: boolean;
   status: string;
   time?: string;
   note?: string;
-  bookmarks?: number;
+  imageUrl?: string;
+  authorName?: string;
+  authorNumber?: number;
+};
+
+type EngagementCounts = {
+  useful: number;
+  bookmarks: number;
+  verified: number;
 };
 
 const recentHotTips: Tip[] = [
@@ -43,40 +51,46 @@ const recentHotTips: Tip[] = [
     id: "tip-001",
     title: "사범대 라운지에 전자레인지와 뜨거운 물 나오는 공간이 있습니다",
     summary: "사범대 라운지에는 전자레인지와 온수가 있어 간단히 도시락이나 컵라면을 먹기 좋습니다.",
-    detail: "사범대 라운지에는 전자레인지와 뜨거운 물을 이용할 수 있는 공간이 있어 시험기간이나 공강 시간에 간단히 식사하기 좋습니다.",
+    detail: "사범대 라운지에는 전자레인지와 뜨거운 물을 이용할 수 있는 공간이 있어 시험기간이나 공강 시간에 간단히 식사하기 좋습니다. 다만 학교 시설은 변경될 수 있으므로 최근 검증일과 학생들의 검증 수를 함께 확인하는 것이 좋습니다.",
     category: "학교생활",
     useful: 128,
+    bookmarks: 86,
     verified: 32,
     lastVerified: "2026.05.26",
     status: "현재 유효",
     time: "2시간 전",
-    bookmarks: 86,
+    authorName: "꿀팁러 #1001",
+    authorNumber: 1001,
   },
   {
     id: "tip-002",
     title: "도서관 시험기간 24시간 운영 시기에는 3층 좌석이 비교적 여유롭습니다",
     summary: "시험기간에는 도서관 좌석 경쟁이 심하지만, 3층 일부 좌석은 상대적으로 여유로운 편입니다.",
-    detail: "시험기간에는 도서관 열람실 좌석이 빠르게 차는 경우가 많습니다. 이때 3층 좌석이나 상대적으로 이동 동선이 긴 공간은 비교적 늦게 차는 편입니다.",
+    detail: "시험기간에는 도서관 열람실 좌석이 빠르게 차는 경우가 많습니다. 이때 3층 좌석이나 상대적으로 이동 동선이 긴 공간은 비교적 늦게 차는 편이라 공부 공간을 찾는 학생들에게 도움이 될 수 있습니다.",
     category: "공부공간",
     useful: 96,
+    bookmarks: 72,
     verified: 21,
     lastVerified: "2026.05.25",
     status: "최근 검증됨",
     time: "5시간 전",
-    bookmarks: 72,
+    authorName: "꿀팁러 #1002",
+    authorNumber: 1002,
   },
   {
     id: "tip-003",
     title: "수강정정 기간에는 전공 사무실보다 학과 공지방을 먼저 확인하는 것이 빠릅니다",
-    summary: "수강정정 기간에는 학과 공지방과 공지사항을 먼저 확인하는 것이 좋습니다.",
-    detail: "수강정정 기간에는 전공 사무실에 문의가 몰리는 경우가 많아 전화 연결이 늦어질 수 있습니다. 학과 공지방, 학과 홈페이지, LMS 공지사항을 먼저 확인하면 빠릅니다.",
+    summary: "수강정정 기간에는 전화 문의가 몰릴 수 있으므로 학과 공지방과 공지사항을 먼저 확인하는 것이 좋습니다.",
+    detail: "수강정정 기간에는 전공 사무실에 문의가 몰리는 경우가 많아 전화 연결이 늦어질 수 있습니다. 따라서 학과 공지방, 학과 홈페이지, LMS 공지사항을 먼저 확인하면 정정 가능 과목이나 여석 안내를 더 빠르게 파악할 수 있습니다.",
     category: "수강신청",
     useful: 74,
+    bookmarks: 44,
     verified: 18,
     lastVerified: "2026.05.24",
     status: "현재 유효",
     time: "8시간 전",
-    bookmarks: 44,
+    authorName: "꿀팁러 #1003",
+    authorNumber: 1003,
   },
 ];
 
@@ -84,41 +98,47 @@ const mostUsefulTips: Tip[] = [
   {
     id: "tip-004",
     title: "타대학 K-MOOC 원격강좌 학점인정은 매 학기 공지를 다시 확인해야 합니다",
-    summary: "K-MOOC 학점인정은 매 학기 신청 기간과 인정 기준이 달라질 수 있습니다.",
-    detail: "타대학 K-MOOC 원격강좌 학점인정은 신청 기간, 인정 기준, 제출 서류가 매 학기 달라질 수 있으므로 최신 공지를 확인해야 합니다.",
+    summary: "K-MOOC 학점인정은 매 학기 신청 기간과 인정 기준이 달라질 수 있어 최신 공지를 확인해야 합니다.",
+    detail: "타대학 K-MOOC 원격강좌 학점인정은 한 번 올라온 정보가 계속 동일하게 적용되는 것이 아니라 매 학기 신청 기간, 인정 기준, 제출 서류가 달라질 수 있습니다.",
     category: "학점인정",
     useful: 214,
+    bookmarks: 59,
     verified: 45,
     lastVerified: "2026.03.04",
     status: "갱신형 정보",
     note: "매 학기 확인 필요",
-    bookmarks: 59,
+    authorName: "꿀팁러 #1004",
+    authorNumber: 1004,
   },
   {
     id: "tip-005",
     title: "국가근로 신청 전 희망근로지 모집 여부를 먼저 확인하면 시간을 줄일 수 있습니다",
-    summary: "국가근로 신청 전 희망근로지 모집 여부와 선발 조건을 확인하면 좋습니다.",
+    summary: "국가근로 신청 전 희망근로지 모집 여부와 선발 조건을 확인하면 불필요한 지원을 줄일 수 있습니다.",
     detail: "국가근로는 신청 자체도 중요하지만 실제 희망근로지가 모집 중인지, 본인의 시간표와 근로 시간이 맞는지도 중요합니다.",
     category: "장학/근로",
     useful: 187,
+    bookmarks: 65,
     verified: 39,
     lastVerified: "2026.04.15",
     status: "최근 검증됨",
     note: "학기별 변동 가능",
-    bookmarks: 65,
+    authorName: "꿀팁러 #1005",
+    authorNumber: 1005,
   },
   {
     id: "tip-006",
     title: "프린트가 급할 때는 중앙도서관보다 학과 건물 복사기를 확인하는 것이 빠릅니다",
-    summary: "출력 대기 줄이 길 때는 학과 건물 복사기나 주변 출력 공간을 확인하는 것이 좋습니다.",
-    detail: "과제 제출 직전에는 중앙도서관이나 학생회관 출력 공간에 사람이 몰릴 수 있습니다. 이럴 때는 학과 건물 내 복사기를 확인하면 시간을 줄일 수 있습니다.",
+    summary: "출력 대기 줄이 길 때는 학과 건물 복사기나 주변 출력 가능한 공간을 확인하는 것이 좋습니다.",
+    detail: "과제 제출 직전에는 중앙도서관이나 학생회관 출력 공간에 사람이 몰릴 수 있습니다. 이럴 때는 학과 건물 내 복사기나 근처 출력 가능한 공간을 확인하면 시간을 줄일 수 있습니다.",
     category: "학교생활",
     useful: 152,
+    bookmarks: 51,
     verified: 27,
     lastVerified: "2026.05.20",
     status: "현재 유효",
     note: "시설 변경 시 신고 필요",
-    bookmarks: 51,
+    authorName: "꿀팁러 #1006",
+    authorNumber: 1006,
   },
 ];
 
@@ -138,10 +158,27 @@ const removedTips = [
 export default function DashboardPage() {
   const [expandedTipId, setExpandedTipId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [tipCounts, setTipCounts] = useState<Record<string, EngagementCounts>>({});
+  const [storedPosts, setStoredPosts] = useState<Tip[]>([]);
+
+  useEffect(() => {
+    const posts = JSON.parse(
+      localStorage.getItem("student-square-posts") ?? "[]"
+    ) as Tip[];
+
+    setStoredPosts(
+      posts.map((post) => ({
+        ...post,
+        detail: post.detail ?? post.summary,
+        lastVerified: post.lastVerified ?? "-",
+        status: post.status ?? "방금 작성됨",
+      }))
+    );
+  }, []);
 
   const allTips = useMemo(() => {
-    return [...recentHotTips, ...mostUsefulTips];
-  }, []);
+    return [...storedPosts, ...recentHotTips, ...mostUsefulTips];
+  }, [storedPosts]);
 
   const searchResults = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -153,7 +190,8 @@ export default function DashboardPage() {
         tip.title.toLowerCase().includes(query) ||
         tip.summary.toLowerCase().includes(query) ||
         tip.detail.toLowerCase().includes(query) ||
-        tip.category.toLowerCase().includes(query)
+        tip.category.toLowerCase().includes(query) ||
+        (tip.tipCategory ?? "").toLowerCase().includes(query)
       );
     });
   }, [allTips, searchQuery]);
@@ -178,6 +216,11 @@ export default function DashboardPage() {
 
   const renderTipCard = (tip: Tip) => {
     const isExpanded = expandedTipId === tip.id;
+    const counts = tipCounts[tip.id] ?? {
+      useful: tip.useful,
+      bookmarks: tip.bookmarks,
+      verified: tip.verified ?? 0,
+    };
     const detailText =
       tip.detail.trim() === tip.summary.trim()
         ? ""
@@ -194,19 +237,29 @@ export default function DashboardPage() {
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">{tip.category}</Badge>
+              <Badge variant="secondary">{tip.tipCategory ?? tip.category}</Badge>
               <Badge variant="outline">{tip.status}</Badge>
             </div>
 
+            <p className="text-xs text-muted-foreground">
+              {tip.authorName ?? "꿀팁러 #0000"}
+            </p>
+
             <h3 className="font-semibold leading-relaxed">{tip.title}</h3>
-            <div className="absolute right-3 top-3">
-              <TipActionMenu isMine={Boolean(tip.isMine)} />
-            </div>
+
             <p className="text-sm text-muted-foreground leading-relaxed">
               {isExpanded && detailText
                 ? `${tip.summary} ${detailText}`
                 : tip.summary}
             </p>
+
+            {tip.imageUrl && (
+              <img
+                src={tip.imageUrl}
+                alt="첨부 이미지"
+                className="mt-3 max-h-[320px] w-full rounded-xl border object-cover"
+              />
+            )}
           </div>
 
           {isExpanded ? (
@@ -218,45 +271,39 @@ export default function DashboardPage() {
 
         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           {tip.time && <span>{tip.time}</span>}
-
-          <span className="flex items-center gap-1">
-            <ThumbsUp className="h-3 w-3" />
-            유용해요 {tip.useful}
-          </span>
-
-          <span className="flex items-center gap-1">
-            <BookMarked className="h-3 w-3" />
-            북마크 {tip.bookmarks ?? 0}
-          </span>
-
-          <span className="flex items-center gap-1">
-            <CheckCircle2 className="h-3 w-3" />
-            검증 {tip.verified}명
-          </span>
-
-          <span className="flex items-center gap-1">
-            <Clock3 className="h-3 w-3" />
-            최근 검증일 {tip.lastVerified}
-          </span>
+          <span>유용해요 {counts.useful}</span>
+          <span>북마크 {counts.bookmarks}</span>
+          <span>검증 {counts.verified}명</span>
+          <span>최근 검증일 {tip.lastVerified}</span>
         </div>
 
-        {isExpanded && detailText && (
-          <div className="mt-3 border-t pt-3">
-            <div className="flex flex-wrap gap-3">
-              <Button variant="outline" size="sm" onClick={(event) => event.stopPropagation()}>
-                <ThumbsUp className="mr-1 h-4 w-4" />
-                유용해요
-              </Button>
-
-              <Button variant="outline" size="sm" onClick={(event) => event.stopPropagation()}>
-                <CheckCircle2 className="mr-1 h-4 w-4" />
-                최근에도 맞아요
-              </Button>
-
-              <Button variant="outline" size="sm" onClick={(event) => event.stopPropagation()}>
-                더 이상 꿀팁 아니에요
-              </Button>
-            </div>
+        {isExpanded && (
+          <div
+            className="mt-3 border-t pt-3"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <TipEngagementActions
+              postId={tip.id}
+              title={tip.title}
+              summary={tip.summary}
+              category={tip.tipCategory ?? tip.category}
+              useful={counts.useful}
+              bookmarks={counts.bookmarks}
+              verified={counts.verified}
+              createdAt={tip.createdAt}
+              createdAtMs={tip.createdAtMs}
+              lastVerified={tip.lastVerified ?? "-"}
+              status={tip.status}
+              imageUrl={tip.imageUrl}
+              authorName={tip.authorName}
+              authorNumber={tip.authorNumber}
+              onCountsChange={(nextCounts) =>
+                setTipCounts((prev) => ({
+                  ...prev,
+                  [tip.id]: nextCounts,
+                }))
+              }
+            />
           </div>
         )}
       </div>

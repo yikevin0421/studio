@@ -30,6 +30,8 @@ type MyPost = {
   lastVerified?: string;
   status?: string;
   imageUrl?: string;
+  authorName?: string;
+  authorNumber?: number;
 };
 
 export default function MyPostsPage() {
@@ -155,6 +157,10 @@ export default function MyPostsPage() {
                           </Badge>
                         </div>
 
+                        <p className="text-xs text-muted-foreground">
+                          {post.authorName ?? "꿀팁러 #0000"}
+                        </p>
+
                         {isEditing ? (
                           <div className="space-y-3">
                             <input
@@ -263,6 +269,8 @@ export default function MyPostsPage() {
                         lastVerified={post.lastVerified ?? "-"}
                         status={post.status ?? "방금 작성됨"}
                         imageUrl={post.imageUrl}
+                        authorName={post.authorName}
+                        authorNumber={post.authorNumber}
                       />
                     )}
                   </CardContent>

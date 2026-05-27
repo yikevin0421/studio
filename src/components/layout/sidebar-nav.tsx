@@ -21,7 +21,7 @@ const navItems = [
   { name: "커뮤니티", href: "/community", icon: Users },
   { name: "내가 쓴 글", href: "/my-posts", icon: MessageSquare },
   { name: "북마크", href: "/bookmarks", icon: Star },
-  { name: "About", href: "/about", icon: Info },
+  { name: "About", href: "/about?from=dashboard", icon: Info },
 ];
 
 const communitySubItems = [

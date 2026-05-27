@@ -30,6 +30,8 @@ type CommunityTip = {
   lastVerified: string;
   status: string;
   imageUrl?: string;
+  authorName?: string;
+  authorNumber?: number;
   isMine?: boolean;
 };
 
@@ -211,6 +213,10 @@ export default function CommunityPage() {
                         <Badge variant="outline">{tip.status}</Badge>
                       </div>
 
+                      <p className="text-xs text-muted-foreground">
+                        {tip.authorName ?? "꿀팁러 #0000"}
+                      </p>
+
                       {isEditing ? (
                         <div className="space-y-3">
                           <textarea
@@ -311,6 +317,8 @@ export default function CommunityPage() {
                       lastVerified={tip.lastVerified ?? "-"}
                       status={tip.status}
                       imageUrl={tip.imageUrl}
+                      authorName={tip.authorName}
+                      authorNumber={tip.authorNumber}
                     />
                   )}
                 </CardContent>

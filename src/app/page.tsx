@@ -22,7 +22,7 @@ export default function HomePage() {
         </div>
 
         <nav className="flex items-center gap-4 text-sm">
-          <Link href="/about" className="flex items-center gap-1 text-[#365A45] hover:text-[#006B3F]">
+          <Link href="/about?from=home" className="flex items-center gap-1 text-[#365A45] hover:text-[#006B3F]">
             <Info className="h-4 w-4" />
             정보
           </Link>

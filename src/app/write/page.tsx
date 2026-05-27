@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ImagePlus, Pencil, Send, X } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
+import { getOrCreateTipsterProfile } from "@/lib/tipster-profile";
 
 type StoredPost = {
   id: string;
@@ -23,6 +24,8 @@ type StoredPost = {
   lastVerified: string;
   status: string;
   imageUrl?: string;
+  authorName: string;
+  authorNumber: number;
 };
 
 const tipCategories = [
@@ -67,6 +70,7 @@ export default function WritePage() {
     if (!trimmedTitle || !trimmedContent) return;
 
     const now = new Date();
+    const tipsterProfile = getOrCreateTipsterProfile();
 
     const newPost: StoredPost = {
       id: `post-${Date.now()}`,
@@ -88,6 +92,8 @@ export default function WritePage() {
       lastVerified: now.toLocaleDateString("ko-KR"),
       status: "방금 작성됨",
       imageUrl,
+      authorName: tipsterProfile.authorName,
+      authorNumber: tipsterProfile.authorNumber,
     };
 
     const savedPosts = JSON.parse(
