@@ -64,10 +64,10 @@ export default function HomePage() {
             </Link>
 
             <Link
-              href="/community"
+              href="/preview"
               className="inline-flex items-center rounded-md border border-[#B7D7A8] bg-white px-5 py-3 text-sm font-medium text-[#064420] hover:bg-[#EAF4E4]"
             >
-              피드 둘러보기
+              미리보기
             </Link>
           </div>
         </div>
