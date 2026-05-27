@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
@@ -86,7 +87,7 @@ const boardMap = {
   past: "과거의 꿀팁",
 } as const;
 
-export default function CommunityPage() {
+function CommunityPageContent() {
   const searchParams = useSearchParams();
   const board = searchParams.get("board") as keyof typeof boardMap | null;
   const selectedCategory = board ? boardMap[board] : null;
@@ -355,5 +356,20 @@ export default function CommunityPage() {
         </div>
       </div>
     </AuthenticatedLayout>
+  );
+}
+
+
+export default function CommunityPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen px-6 py-8">
+          불러오는 중...
+        </main>
+      }
+    >
+      <CommunityPageContent />
+    </Suspense>
   );
 }
