@@ -10,9 +10,6 @@ import { Button } from "@/components/ui/button";
 import { TipActionMenu } from "@/components/tip-action-menu";
 import {
   MessageSquare,
-  ThumbsUp,
-  BookMarked,
-  CheckCircle2,
     Save,
   X,
   ChevronDown,
@@ -282,10 +279,17 @@ export default function CommunityPage() {
                     </div>
                   ) : (
                     <TipEngagementActions
+                      postId={tip.id}
+                      title={tip.title}
+                      summary={tip.summary}
+                      category={tip.category}
                       useful={tip.useful}
                       bookmarks={tip.bookmarks}
                       verified={tip.verified ?? 0}
+                      createdAt={tip.createdAt}
+                      createdAtMs={tip.createdAtMs}
                       lastVerified={tip.lastVerified ?? "-"}
+                      status={tip.status}
                     />
                   )}
                 </CardContent>

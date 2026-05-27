@@ -252,17 +252,17 @@ export default function MyPostsPage() {
                       </div>
                     ) : (
                       <TipEngagementActions
-                        postId={tip.id}
-                        title={tip.title}
-                        summary={tip.summary}
-                        category={tip.category}
-                        useful={tip.useful}
-                        bookmarks={tip.bookmarks}
-                        verified={tip.verified ?? 0}
-                        createdAt={tip.createdAt}
-                        createdAtMs={tip.createdAtMs}
-                        lastVerified={tip.lastVerified ?? "-"}
-                        status={tip.status}
+                        postId={post.id}
+                        title={post.title}
+                        summary={post.summary}
+                        category={post.category}
+                        useful={post.useful}
+                        bookmarks={post.bookmarks}
+                        verified={post.verified ?? 0}
+                        createdAt={post.createdAt}
+                        createdAtMs={post.createdAtMs}
+                        lastVerified={post.lastVerified ?? "-"}
+                        status={post.status ?? "방금 작성됨"}
                       />)}
                   </CardContent>
                 </Card>

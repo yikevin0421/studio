@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ThumbsUp, BookMarked, CheckCircle2, Clock3, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  ThumbsUp,
+  BookMarked,
+  CheckCircle2,
+  Clock3,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
 type BookmarkPost = {
   id: string;
@@ -70,11 +77,11 @@ export function TipEngagementActions({
   const verificationStorageKey = `student-square-verifications-${postId}`;
 
   useEffect(() => {
-    const bookmarks = JSON.parse(
+    const savedBookmarks = JSON.parse(
       localStorage.getItem("student-square-bookmarks") ?? "[]"
     ) as BookmarkPost[];
 
-    setIsBookmarked(bookmarks.some((post) => post.id === postId));
+    setIsBookmarked(savedBookmarks.some((post) => post.id === postId));
 
     const savedVerifications = JSON.parse(
       localStorage.getItem(verificationStorageKey) ?? "null"
@@ -124,11 +131,12 @@ export function TipEngagementActions({
       status,
     };
 
-    localStorage.setItem(
-      "student-square-bookmarks",
-      JSON.stringify([newBookmark, ...savedBookmarks.filter((post) => post.id !== postId)])
-    );
+    const nextBookmarks = [
+      newBookmark,
+      ...savedBookmarks.filter((post) => post.id !== postId),
+    ];
 
+    localStorage.setItem("student-square-bookmarks", JSON.stringify(nextBookmarks));
     setBookmarkCount((count) => count + 1);
     setIsBookmarked(true);
   };
@@ -187,7 +195,7 @@ export function TipEngagementActions({
             <Input
               value={verifyText}
               onChange={(event) => setVerifyText(event.target.value)}
-              placeholder={verifyText ? "" : "링크를 복사하거나 내용을 입력하세요"}
+              placeholder="링크를 복사하거나 내용을 입력하세요"
             />
 
             <Button onClick={handleSubmitVerification} disabled={!verifyText.trim()}>
