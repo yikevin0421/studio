@@ -26,12 +26,28 @@ type BookmarkPost = {
 export default function BookmarksPage() {
   const [bookmarkedPosts, setBookmarkedPosts] = useState<BookmarkPost[]>([]);
 
-  useEffect(() => {
+  const loadBookmarks = () => {
     const posts = JSON.parse(
       localStorage.getItem("student-square-bookmarks") ?? "[]"
     ) as BookmarkPost[];
 
     setBookmarkedPosts(posts);
+  };
+
+  useEffect(() => {
+    loadBookmarks();
+
+    const handleBookmarksUpdated = () => {
+      loadBookmarks();
+    };
+
+    window.addEventListener("student-square-bookmarks-updated", handleBookmarksUpdated);
+    window.addEventListener("storage", handleBookmarksUpdated);
+
+    return () => {
+      window.removeEventListener("student-square-bookmarks-updated", handleBookmarksUpdated);
+      window.removeEventListener("storage", handleBookmarksUpdated);
+    };
   }, []);
 
   return (
@@ -54,7 +70,11 @@ export default function BookmarksPage() {
               <Card key={post.id}>
                 <CardHeader>
                   <div className="space-y-2">
-                    {post.category && <Badge variant="secondary">{post.tipCategory ?? post.category}</Badge>}
+                    {(post.tipCategory ?? post.category) && (
+                      <Badge variant="secondary">
+                        {post.tipCategory ?? post.category}
+                      </Badge>
+                    )}
 
                     <CardTitle className="text-lg leading-relaxed">
                       {post.title}

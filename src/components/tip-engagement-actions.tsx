@@ -115,6 +115,7 @@ export function TipEngagementActions({
     if (isBookmarked) {
       const nextBookmarks = savedBookmarks.filter((post) => post.id !== postId);
       localStorage.setItem("student-square-bookmarks", JSON.stringify(nextBookmarks));
+      window.dispatchEvent(new Event("student-square-bookmarks-updated"));
       setBookmarkCount((count) => Math.max(0, count - 1));
       setIsBookmarked(false);
       return;
@@ -141,6 +142,7 @@ export function TipEngagementActions({
     ];
 
     localStorage.setItem("student-square-bookmarks", JSON.stringify(nextBookmarks));
+    window.dispatchEvent(new Event("student-square-bookmarks-updated"));
     setBookmarkCount((count) => count + 1);
     setIsBookmarked(true);
   };

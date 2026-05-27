@@ -1,73 +1,70 @@
 "use client"
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import {
-  LayoutDashboard,
-  Users,
-  User,
-  PlusCircle,
-  Star
-} from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
-import { useLanguage } from '@/hooks/use-language';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { LayoutDashboard, Users, Pencil, Star, User } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 export function BottomNav() {
   const pathname = usePathname();
   const { profile } = useAuth();
-  const { language } = useLanguage();
 
-  const items = [
+  const navItems = [
     {
-      name: language === 'en' ? 'Home' : '메인',
-      href: '/dashboard',
-      icon: LayoutDashboard
+      name: "메인",
+      href: "/dashboard",
+      icon: LayoutDashboard,
     },
     {
-      name: language === 'en' ? 'Community' : '커뮤니티',
-      href: '/community',
-      icon: Users
+      name: "커뮤니티",
+      href: "/community",
+      icon: Users,
     },
     {
-      name: language === 'en' ? 'Post' : '제보',
-      href: '/community?create=true',
-      icon: PlusCircle
+      name: "글 쓰기",
+      href: "/write",
+      icon: Pencil,
     },
     {
-      name: language === 'en' ? 'Bookmarks' : '북마크',
-      href: '/bookmarks',
-      icon: Star
+      name: "북마크",
+      href: "/bookmarks",
+      icon: Star,
     },
     {
-      name: language === 'en' ? 'Profile' : '프로필',
-      href: profile ? `/profile/${profile.uid}` : '/login',
-      icon: User
+      name: "프로필",
+      href: profile?.uid ? `/profile/${profile.uid}` : "/login",
+      icon: User,
     },
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 z-50 h-16 w-full border-t bg-background lg:hidden">
-      <div className="grid h-full grid-cols-5">
-        {items.map((item) => {
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background md:hidden">
+      <div className="grid h-16 grid-cols-5">
+        {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive =
+            item.href === "/dashboard"
+              ? pathname === "/dashboard"
+              : pathname.startsWith(item.href);
 
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 transition-colors",
-                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                "flex flex-col items-center justify-center gap-1 text-xs transition-colors",
+                isActive
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon className={cn("h-6 w-6", item.name === 'Post' || item.name === '제보' ? "text-primary" : "")} />
-              <span className="text-[10px] font-medium">{item.name}</span>
+              <Icon className="h-5 w-5" />
+              <span>{item.name}</span>
             </Link>
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 }
