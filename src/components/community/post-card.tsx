@@ -1,262 +1,126 @@
-
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { useAuth } from '@/hooks/use-auth';
-import { useFirestore } from '@/firebase';
-import { doc, updateDoc, increment, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useMemo, useState } from "react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { 
-  Heart, 
-  MessageCircle, 
-  MoreVertical, 
-  Trash2,
-  Bookmark,
-  ExternalLink,
-  EyeOff,
-  Eye
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import Link from 'next/link';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+  ThumbsUp,
+  MessageCircle,
+  Clock3,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
-export function PostCard({ post }: { post: any }) {
-  const { profile } = useAuth();
-  const db = useFirestore();
-  const { toast } = useToast();
+type PostCardProps = {
+  post?: any;
+  [key: string]: any;
+};
+
+function getPostValue(post: any, keys: string[], fallback: any = "") {
+  for (const key of keys) {
+    if (post?.[key] !== undefined && post?.[key] !== null) return post[key];
+  }
+  return fallback;
+}
+
+export function PostCard(props: PostCardProps) {
+  const post = props.post ?? props;
+
+  const title = getPostValue(post, ["title", "subject"], "제목 없음");
+  const content = String(
+    getPostValue(post, ["content", "summary", "body", "text", "description"], "")
+  );
+
+  const initialLikes = Number(getPostValue(post, ["likes", "likesCount", "useful"], 0));
+  const comments = Number(getPostValue(post, ["comments", "commentsCount"], 0));
+  const author = getPostValue(post, ["author", "userName", "displayName", "name"], "익명");
+  const time = getPostValue(post, ["time", "createdAt", "created_at"], "방금 전");
+
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [likesCount, setLikesCount] = useState(post.likesCount || 0);
+  const [likesCount, setLikesCount] = useState<number>(initialLikes);
 
-  const isModerator = profile?.role === 'admin' || profile?.role === 'superadmin';
+  const previewLimit = 90;
+  const shouldClamp = content.length > previewLimit;
 
-  useEffect(() => {
-    if (!profile || !db || !post.id) return;
-    
-    const checkSaved = async () => {
-      const bookmarkRef = doc(db, 'users', profile.uid, 'bookmarks', post.id);
-      const snapshot = await getDoc(bookmarkRef);
-      if (snapshot.exists()) setIsSaved(true);
-    };
-    checkSaved();
-  }, [profile, db, post.id]);
+  const previewText = useMemo(() => {
+    if (!shouldClamp) return content;
+    return content.slice(0, previewLimit);
+  }, [content, shouldClamp]);
+
+  const remainingText = useMemo(() => {
+    if (!shouldClamp) return "";
+    return content.slice(previewLimit);
+  }, [content, shouldClamp]);
 
   const handleLike = () => {
-    if (!profile || !db) {
-      toast({ title: "Please login first", variant: "destructive" });
-      return;
-    }
-    
     const newLikedState = !isLiked;
     setIsLiked(newLikedState);
-    setLikesCount(prev => newLikedState ? prev + 1 : prev - 1);
-    
-    const postRef = doc(db, 'posts', post.id);
-    updateDoc(postRef, {
-      likesCount: increment(newLikedState ? 1 : -1)
-    }).catch(async () => {
-      const permissionError = new FirestorePermissionError({
-        path: postRef.path,
-        operation: 'update',
-        requestResourceData: { likesCount: 'increment' },
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
-  };
-
-  const handleSave = () => {
-    if (!profile || !db) return;
-    const bookmarkRef = doc(db, 'users', profile.uid, 'bookmarks', post.id);
-    
-    if (isSaved) {
-      deleteDoc(bookmarkRef).then(() => {
-        setIsSaved(false);
-        toast({ title: "Post removed from bookmarks" });
-      }).catch(async () => {
-        const permissionError = new FirestorePermissionError({
-          path: bookmarkRef.path,
-          operation: 'delete',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
-    } else {
-      const data = {
-        postId: post.id,
-        savedAt: new Date().toISOString()
-      };
-      setDoc(bookmarkRef, data).then(() => {
-        setIsSaved(true);
-        toast({ title: "Post saved to bookmarks" });
-      }).catch(async () => {
-        const permissionError = new FirestorePermissionError({
-          path: bookmarkRef.path,
-          operation: 'create',
-          requestResourceData: data,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
-    }
-  };
-
-  const handleDelete = () => {
-    if (!db || !post.id) return;
-    const postRef = doc(db, 'posts', post.id);
-    deleteDoc(postRef).then(() => {
-      toast({ title: "Post Deleted" });
-    }).catch(async () => {
-      const permissionError = new FirestorePermissionError({
-        path: postRef.path,
-        operation: 'delete',
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
-  };
-
-  const toggleHide = () => {
-    if (!db || !post.id) return;
-    const postRef = doc(db, 'posts', post.id);
-    const hiddenState = !post.hidden;
-    updateDoc(postRef, {
-      hidden: hiddenState
-    }).then(() => {
-      toast({ title: hiddenState ? "Post Hidden" : "Post Restored" });
-    }).catch(async () => {
-      const permissionError = new FirestorePermissionError({
-        path: postRef.path,
-        operation: 'update',
-        requestResourceData: { hidden: hiddenState },
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
+    setLikesCount((prev: number) => (newLikedState ? prev + 1 : prev - 1));
   };
 
   return (
-    <Card className={cn("shadow-sm border-2 transition-all bg-card", post.hidden && "opacity-60 grayscale bg-muted/30")}>
-      <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-4">
-        <Link href={`/profile/${post.userId}`}>
-          <Avatar className="h-10 w-10 hover:opacity-80 transition-opacity">
-            <AvatarImage src={post.profilePicture} alt={post.username} />
-            <AvatarFallback>{post.username?.charAt(0)}</AvatarFallback>
-          </Avatar>
-        </Link>
-        <div className="flex-1 flex flex-col">
-          <div className="flex items-center gap-2">
-            <Link href={`/profile/${post.userId}`} className="font-bold text-primary hover:underline">
-              {post.username}
-            </Link>
-            <span className="text-xs text-muted-foreground">
-              {post.timestamp?.toDate ? formatDistanceToNow(post.timestamp.toDate(), { addSuffix: true }) : 'just now'}
-            </span>
-            {post.hidden && <Badge variant="secondary" className="text-[10px] h-4">HIDDEN</Badge>}
-          </div>
-          <Badge variant="outline" className="w-fit h-5 text-[10px] mt-0.5 px-1 font-normal opacity-70">
-            {post.category || 'General'}
-          </Badge>
-        </div>
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleSave} className="gap-2">
-              <Bookmark className={cn("h-4 w-4", isSaved && "fill-current")} /> 
-              {isSaved ? 'Unsave Post' : 'Save Post'}
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="gap-2">
-              <Link href={`/post/${post.id}`}>
-                <ExternalLink className="h-4 w-4" /> View Full Post
-              </Link>
-            </DropdownMenuItem>
-            {(profile?.uid === post.userId || isModerator) && (
-              <DropdownMenuItem onClick={handleDelete} className="text-destructive gap-2">
-                <Trash2 className="h-4 w-4" /> Delete Post
-              </DropdownMenuItem>
-            )}
-            {isModerator && (
-              <DropdownMenuItem onClick={toggleHide} className="gap-2">
-                {post.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                {post.hidden ? 'Restore Post' : 'Hide Post'}
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </CardHeader>
-      
-      <CardContent className="px-4 pb-4">
-        <p className="whitespace-pre-wrap leading-relaxed text-[15px]">
-          {post.content}
-        </p>
-        {post.image && (
-          <div className="mt-4 rounded-xl overflow-hidden border">
-            <img src={post.image} alt="Post media" className="w-full h-auto object-cover max-h-[400px]" />
-          </div>
-        )}
-      </CardContent>
+    <article className="rounded-xl border bg-background p-4 transition-colors hover:bg-accent/40">
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold leading-relaxed">
+          {title}
+        </h3>
 
-      <CardFooter className="p-2 px-4 border-t flex items-center justify-between">
-        <div className="flex gap-1">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className={cn("gap-2 rounded-full", isLiked && "text-destructive bg-destructive/10 hover:bg-destructive/20")} 
-            onClick={handleLike}
-          >
-            <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
-            <span className="text-xs font-semibold">{likesCount}</span>
-          </Button>
-          <Button variant="ghost" size="sm" className="gap-2 rounded-full text-muted-foreground" asChild>
-            <Link href={`/post/${post.id}`}>
-              <MessageCircle className="h-4 w-4" />
-              <span className="text-xs font-semibold">{post.commentCount || 0}</span>
-            </Link>
-          </Button>
-          
-          {isModerator && (
-            <div className="flex ml-4 pl-4 border-l gap-1">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-destructive hover:bg-destructive/10 h-8 px-2"
-                onClick={handleDelete}
-              >
-                <Trash2 className="h-4 w-4 mr-1" /> <span className="text-[10px] font-bold">REMOVE</span>
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-muted-foreground hover:bg-secondary h-8 px-2"
-                onClick={toggleHide}
-              >
-                {post.hidden ? <Eye className="h-4 w-4 mr-1" /> : <EyeOff className="h-4 w-4 mr-1" />}
-                <span className="text-[10px] font-bold uppercase">{post.hidden ? 'RESTORE' : 'HIDE'}</span>
-              </Button>
-            </div>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {shouldClamp ? (
+            <>
+              {previewText}
+              {!isExpanded && "..."}
+              {isExpanded && remainingText}
+            </>
+          ) : (
+            content
           )}
-        </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className={cn("rounded-full", isSaved ? "text-primary bg-primary/10" : "text-muted-foreground")}
-          onClick={handleSave}
+        </p>
+
+        {shouldClamp && (
+          <button
+            type="button"
+            onClick={() => setIsExpanded((prev) => !prev)}
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
+            {isExpanded ? (
+              <>
+                접기
+                <ChevronUp className="h-4 w-4" />
+              </>
+            ) : (
+              <>
+                펼쳐보기
+                <ChevronDown className="h-4 w-4" />
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+        <button
+          type="button"
+          onClick={handleLike}
+          className="flex items-center gap-1 hover:text-primary"
         >
-          <Bookmark className={cn("h-4 w-4", isSaved && "fill-current")} />
-        </Button>
-      </CardFooter>
-    </Card>
+          <ThumbsUp className="h-4 w-4" />
+          {likesCount}
+        </button>
+
+        <span className="flex items-center gap-1">
+          <MessageCircle className="h-4 w-4" />
+          {comments}
+        </span>
+
+        <span className="flex items-center gap-1">
+          <Clock3 className="h-4 w-4" />
+          {time}
+        </span>
+
+        <span>{author}</span>
+      </div>
+    </article>
   );
 }
+
+export default PostCard;

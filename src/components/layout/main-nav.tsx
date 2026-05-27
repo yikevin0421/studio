@@ -87,7 +87,7 @@ export function MainNav() {
                     <span>Settings</span>
                   </Link>
                 </DropdownMenuItem>
-                {profile.role === 'ADMIN' && (
+                {String(profile.role).toLowerCase() === 'admin' && (
                   <DropdownMenuItem asChild>
                     <Link href="/admin">
                       <ShieldCheck className="mr-2 h-4 w-4" />

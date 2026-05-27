@@ -1,38 +1,13 @@
 "use client"
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  ArrowLeft,
-  BookMarked,
-  CheckCircle2,
-  Clock3,
-  Search,
-  ThumbsUp,
-} from "lucide-react";
+import { ArrowLeft, BookMarked, CheckCircle2, Clock3, ThumbsUp } from "lucide-react";
 
-type PopularTip = {
-  id: string;
-  title: string;
-  summary: string;
-  category: string;
-  bookmarks: number;
-  useful: number;
-  verified: number;
-  lastVerified: string;
-};
-
-const popularTips: PopularTip[] = [
+const popularTips = [
   {
     id: "tip-001",
     title: "사범대 라운지에 전자레인지와 뜨거운 물 나오는 공간이 있습니다",
@@ -73,42 +48,10 @@ const popularTips: PopularTip[] = [
     verified: 27,
     lastVerified: "2026.05.20",
   },
-  {
-    id: "tip-005",
-    title: "수강정정 기간에는 전공 사무실보다 학과 공지방을 먼저 확인하는 것이 빠릅니다",
-    summary: "수강정정 기간에 빠르게 정보를 확인하는 방법입니다.",
-    category: "수강신청",
-    bookmarks: 44,
-    useful: 74,
-    verified: 18,
-    lastVerified: "2026.05.24",
-  },
 ];
 
-const categories = ["전체", "학교생활", "공부공간", "장학/근로", "수강신청"];
-
 export default function PopularBookmarksPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("전체");
-
-  const filteredTips = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-
-    return popularTips
-      .filter((tip) => {
-        const matchesCategory =
-          selectedCategory === "전체" || tip.category === selectedCategory;
-
-        const matchesSearch =
-          query.length === 0 ||
-          tip.title.toLowerCase().includes(query) ||
-          tip.summary.toLowerCase().includes(query) ||
-          tip.category.toLowerCase().includes(query);
-
-        return matchesCategory && matchesSearch;
-      })
-      .sort((a, b) => b.bookmarks - a.bookmarks);
-  }, [searchQuery, selectedCategory]);
+  const sortedTips = [...popularTips].sort((a, b) => b.bookmarks - a.bookmarks);
 
   return (
     <AuthenticatedLayout>
@@ -131,52 +74,9 @@ export default function PopularBookmarksPage() {
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>꿀팁 검색</CardTitle>
-            <CardDescription>
-              제목, 내용, 카테고리로 북마크가 많은 꿀팁을 검색할 수 있습니다.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <input
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="예: 도서관, 국가근로, 전자레인지"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 pl-9 text-sm"
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {category}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            총 {filteredTips.length}개의 꿀팁
-          </p>
-          <p className="text-sm text-muted-foreground">
-            정렬 기준: 북마크 많은 순
-          </p>
-        </div>
-
         <div className="space-y-4">
-          {filteredTips.map((tip, index) => (
-            <Card key={tip.id} className="hover:bg-accent transition-colors">
+          {sortedTips.map((tip, index) => (
+            <Card key={tip.id}>
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
@@ -221,14 +121,6 @@ export default function PopularBookmarksPage() {
               </CardContent>
             </Card>
           ))}
-
-          {filteredTips.length === 0 && (
-            <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
-                검색 결과가 없습니다.
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
     </AuthenticatedLayout>

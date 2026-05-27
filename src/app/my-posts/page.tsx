@@ -1,80 +1,293 @@
-
 "use client"
 
-import { AuthenticatedLayout } from '@/components/layout/authenticated-layout';
-import { useAuth } from '@/hooks/use-auth';
-import { useFirestore } from '@/firebase';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { useState, useEffect } from 'react';
-import { PostCard } from '@/components/community/post-card';
-import { Loader2, MessageSquare, PenTool } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  MessageSquare,
+  Pencil,
+  ThumbsUp,
+  BookMarked,
+  Clock3,
+  CheckCircle2,
+  MoreHorizontal,
+  Trash2,
+  Save,
+  X,
+} from "lucide-react";
+
+type MyPost = {
+  id: string;
+  title: string;
+  summary: string;
+  category: string;
+  useful: number;
+  bookmarks: number;
+  verified?: number;
+  createdAt: string;
+  createdAtMs?: number;
+  lastVerified?: string;
+  status?: string;
+};
 
 export default function MyPostsPage() {
-  const { profile } = useAuth();
-  const db = useFirestore();
-  const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [myPosts, setMyPosts] = useState<MyPost[]>([]);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!db || !profile) return;
+    const posts = JSON.parse(
+      localStorage.getItem("student-square-posts") ?? "[]"
+    ) as MyPost[];
 
-    const q = query(
-      collection(db, 'posts'),
-      where('userId', '==', profile.uid),
-      orderBy('timestamp', 'desc')
+    if (posts.length > 0) {
+      setMyPosts(posts);
+      setIsLoading(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setMyPosts([]);
+      setIsLoading(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const savePosts = (posts: MyPost[]) => {
+    setMyPosts(posts);
+    localStorage.setItem("student-square-posts", JSON.stringify(posts));
+  };
+
+  const handleUseful = (postId: string) => {
+    savePosts(
+      myPosts.map((post) =>
+        post.id === postId ? { ...post, useful: post.useful + 1 } : post
+      )
+    );
+  };
+
+  const handleBookmark = (postId: string) => {
+    savePosts(
+      myPosts.map((post) =>
+        post.id === postId ? { ...post, bookmarks: post.bookmarks + 1 } : post
+      )
+    );
+  };
+
+  const handleVerify = (postId: string) => {
+    const today = new Date().toLocaleDateString("ko-KR");
+
+    savePosts(
+      myPosts.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              verified: (post.verified ?? 0) + 1,
+              lastVerified: today,
+              status: "최근 검증됨",
+            }
+          : post
+      )
+    );
+  };
+
+  const handleEditStart = (post: MyPost) => {
+    setEditingPostId(post.id);
+    setEditingText(post.summary);
+    setOpenMenuPostId(null);
+  };
+
+  const handleEditCancel = () => {
+    setEditingPostId(null);
+    setEditingText("");
+  };
+
+  const handleEditSave = (postId: string) => {
+    const trimmedText = editingText.trim();
+
+    if (!trimmedText) return;
+
+    savePosts(
+      myPosts.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              title:
+                trimmedText.length > 40
+                  ? `${trimmedText.slice(0, 40)}...`
+                  : trimmedText,
+              summary: trimmedText,
+            }
+          : post
+      )
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPosts(postsData);
-      setLoading(false);
-    });
+    setEditingPostId(null);
+    setEditingText("");
+  };
 
-    return () => unsubscribe();
-  }, [db, profile]);
+  const handleDelete = (postId: string) => {
+    const ok = confirm("이 글을 삭제할까요?");
+    if (!ok) return;
+
+    savePosts(myPosts.filter((post) => post.id !== postId));
+    setOpenMenuPostId(null);
+  };
 
   return (
     <AuthenticatedLayout>
-      <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in duration-500">
-        <div className="flex justify-between items-center">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold font-headline text-primary flex items-center gap-3">
-              <MessageSquare className="h-8 w-8" />
-              My Contributions
+      <div className="mx-auto max-w-4xl space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+              <MessageSquare className="h-7 w-7" />
+              내가 쓴 글
             </h1>
-            <p className="text-muted-foreground">Manage the thoughts you've shared with the campus.</p>
+            <p className="text-muted-foreground mt-2">
+              내가 작성한 꿀팁 글을 확인할 수 있습니다.
+            </p>
           </div>
-          <Button asChild className="rounded-full">
-            <Link href="/community">
-              <PenTool className="h-4 w-4 mr-2" /> New Post
+
+          <Button asChild>
+            <Link href="/write">
+              <Pencil className="mr-2 h-4 w-4" />
+              글 쓰기
             </Link>
           </Button>
         </div>
 
-        <div className="space-y-6">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
-            </div>
-          ) : posts.length > 0 ? (
-            posts.map(post => <PostCard key={post.id} post={post} />)
-          ) : (
-            <div className="text-center py-32 bg-card border-2 border-dashed rounded-3xl space-y-6">
-              <div className="h-20 w-20 bg-primary/5 rounded-full flex items-center justify-center mx-auto">
-                <MessageSquare className="h-10 w-10 text-primary opacity-30" />
-              </div>
-              <div className="space-y-2">
-                <p className="font-bold text-xl">You haven't posted yet</p>
-                <p className="text-muted-foreground max-w-xs mx-auto">Share your first thought or question with fellow students in the Student Square!</p>
-              </div>
-              <Button asChild size="lg" className="rounded-full px-8">
-                <Link href="/community">Start a Conversation</Link>
-              </Button>
-            </div>
-          )}
-        </div>
+        {isLoading ? (
+          <div className="flex min-h-[300px] items-center justify-center">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-primary" />
+          </div>
+        ) : myPosts.length > 0 ? (
+          <div className="space-y-4">
+            {myPosts.map((post) => {
+              const isEditing = editingPostId === post.id;
+              const isMenuOpen = openMenuPostId === post.id;
+
+              return (
+                <Card key={post.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="secondary">{post.category}</Badge>
+                          <Badge variant="outline">{post.status ?? "방금 작성됨"}</Badge>
+                        </div>
+
+                        {isEditing ? (
+                          <textarea
+                            value={editingText}
+                            onChange={(event) => setEditingText(event.target.value)}
+                            maxLength={1000}
+                            className="min-h-[140px] w-full resize-none rounded-md border bg-background p-3 text-sm outline-none"
+                          />
+                        ) : (
+                          <>
+                            <CardTitle className="text-lg leading-relaxed">
+                              {post.title}
+                            </CardTitle>
+                            <CardDescription className="leading-relaxed">
+                              {post.summary}
+                            </CardDescription>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="relative flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {post.createdAt}
+                        </span>
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setOpenMenuPostId(isMenuOpen ? null : post.id)}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+
+                        {isMenuOpen && (
+                          <div className="absolute right-0 top-9 z-20 w-36 rounded-md border bg-background p-1 shadow-md">
+                            <button
+                              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent"
+                              onClick={() => handleEditStart(post)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                              수정하기
+                            </button>
+
+                            <button
+                              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm text-destructive hover:bg-accent"
+                              onClick={() => handleDelete(post.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              삭제하기
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent>
+                    {isEditing ? (
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={handleEditCancel}>
+                          <X className="mr-2 h-4 w-4" />
+                          취소
+                        </Button>
+
+                        <Button size="sm" onClick={() => handleEditSave(post.id)}>
+                          <Save className="mr-2 h-4 w-4" />
+                          저장
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                        <Button variant="ghost" size="sm" onClick={() => handleUseful(post.id)}>
+                          <ThumbsUp className="mr-1 h-4 w-4" />
+                          유용해요 {post.useful}
+                        </Button>
+
+                        <Button variant="ghost" size="sm" onClick={() => handleBookmark(post.id)}>
+                          <BookMarked className="mr-1 h-4 w-4" />
+                          북마크 {post.bookmarks}
+                        </Button>
+
+                        <Button variant="ghost" size="sm" onClick={() => handleVerify(post.id)}>
+                          <CheckCircle2 className="mr-1 h-4 w-4" />
+                          검증 {post.verified ?? 0}명
+                        </Button>
+
+                        <span className="flex items-center gap-1 px-2 py-1.5">
+                          <Clock3 className="h-4 w-4" />
+                          최근 검증일 {post.lastVerified ?? "-"}
+                        </span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="py-20 text-center">
+              <p className="text-lg font-semibold">꿀팁을 공유해보세요!</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                아직 작성한 글이 없습니다.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </AuthenticatedLayout>
   );
