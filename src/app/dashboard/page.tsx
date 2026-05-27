@@ -10,7 +10,7 @@ import {
   MessageSquare,
   Flame,
   Star,
-  PlusCircle,
+  Pencil,
   BookMarked,
   ThumbsUp,
   Clock3,
@@ -145,14 +145,14 @@ export default function DashboardPage() {
 
   const quickActions = [
     {
-      label: '꿀팁 제보하기',
-      icon: PlusCircle,
+      label: '글 쓰기',
+      icon: Pencil,
       href: '/community',
     },
     {
-      label: '저장한 꿀팁',
+      label: '북마크 많은 꿀팁',
       icon: BookMarked,
-      href: '/bookmarks',
+      href: '/popular-bookmarks',
     },
     {
       label: '검증 필요 글 보기',

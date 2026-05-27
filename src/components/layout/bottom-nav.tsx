@@ -3,25 +3,47 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Bell, 
+import {
+  LayoutDashboard,
+  Users,
   User,
-  PlusCircle
+  PlusCircle,
+  Star
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useLanguage } from '@/hooks/use-language';
 
 export function BottomNav() {
   const pathname = usePathname();
   const { profile } = useAuth();
+  const { language } = useLanguage();
 
   const items = [
-    { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Feed', href: '/community', icon: Users },
-    { name: 'Post', href: '/community?create=true', icon: PlusCircle },
-    { name: 'Alerts', href: '/notifications', icon: Bell },
-    { name: 'Profile', href: profile ? `/profile/${profile.uid}` : '/login', icon: User },
+    {
+      name: language === 'en' ? 'Home' : '메인',
+      href: '/dashboard',
+      icon: LayoutDashboard
+    },
+    {
+      name: language === 'en' ? 'Community' : '커뮤니티',
+      href: '/community',
+      icon: Users
+    },
+    {
+      name: language === 'en' ? 'Post' : '제보',
+      href: '/community?create=true',
+      icon: PlusCircle
+    },
+    {
+      name: language === 'en' ? 'Bookmarks' : '북마크',
+      href: '/bookmarks',
+      icon: Star
+    },
+    {
+      name: language === 'en' ? 'Profile' : '프로필',
+      href: profile ? `/profile/${profile.uid}` : '/login',
+      icon: User
+    },
   ];
 
   return (
@@ -30,6 +52,7 @@ export function BottomNav() {
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
+
           return (
             <Link
               key={item.href}
@@ -39,7 +62,7 @@ export function BottomNav() {
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon className={cn("h-6 w-6", item.name === 'Post' && "text-primary")} />
+              <Icon className={cn("h-6 w-6", item.name === 'Post' || item.name === '제보' ? "text-primary" : "")} />
               <span className="text-[10px] font-medium">{item.name}</span>
             </Link>
           );
