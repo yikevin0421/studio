@@ -30,6 +30,17 @@ const updateReasons = [
   "기타",
 ];
 
+type RequestRecord = {
+  id: string;
+  postId?: string;
+  postTitle?: string;
+  reason: string;
+  type: "report" | "update";
+  createdAt: string;
+  createdAtMs: number;
+  status: string;
+};
+
 type TipActionMenuProps = {
   isMine: boolean;
   postId?: string;
@@ -38,6 +49,19 @@ type TipActionMenuProps = {
   onDelete?: () => void;
   onBlock?: () => void;
 };
+
+function removeDuplicateRecords(records: RequestRecord[]) {
+  const seen = new Set<string>();
+
+  return records.filter((record) => {
+    const key = `${record.type}-${record.postId ?? "unknown"}-${record.reason}`;
+
+    if (seen.has(key)) return false;
+
+    seen.add(key);
+    return true;
+  });
+}
 
 export function TipActionMenu({
   isMine,
@@ -51,7 +75,66 @@ export function TipActionMenu({
   const [reasonType, setReasonType] = useState<"report" | "update" | null>(null);
 
   const handleReasonClick = (reason: string) => {
-    alert(`선택한 사유: ${reason}`);
+    if (!reasonType) return;
+
+    const storageKey =
+      reasonType === "report"
+        ? "student-square-report-records"
+        : "student-square-update-request-records";
+
+    const savedRecords = JSON.parse(
+      localStorage.getItem(storageKey) ?? "[]"
+    ) as RequestRecord[];
+
+    const alreadyExists = savedRecords.some(
+      (record) =>
+        record.type === reasonType &&
+        record.postId === postId &&
+        record.reason === reason
+    );
+
+    if (alreadyExists) {
+      alert(
+        reasonType === "report"
+          ? "이미 같은 사유로 신고한 기록이 있습니다."
+          : "이미 같은 사유로 정보 갱신을 요청한 기록이 있습니다."
+      );
+
+      setReasonType(null);
+      setIsOpen(false);
+      return;
+    }
+
+    const now = new Date();
+
+    const newRecord: RequestRecord = {
+      id: `${reasonType}-${Date.now()}`,
+      postId,
+      postTitle: postTitle ?? "제목 없음",
+      reason,
+      type: reasonType,
+      createdAt: now.toLocaleString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      createdAtMs: now.getTime(),
+      status: "접수됨",
+    };
+
+    const nextRecords = removeDuplicateRecords([newRecord, ...savedRecords]);
+
+    localStorage.setItem(storageKey, JSON.stringify(nextRecords));
+    window.dispatchEvent(new Event("student-square-request-records-updated"));
+
+    alert(
+      reasonType === "report"
+        ? "신고가 저장되었습니다."
+        : "정보 갱신 요청이 저장되었습니다."
+    );
+
     setReasonType(null);
     setIsOpen(false);
   };

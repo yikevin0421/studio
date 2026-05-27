@@ -10,7 +10,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Ban, RotateCcw, Settings, ThumbsUp, CheckCircle2 } from "lucide-react";
+import {
+  Bell,
+  Ban,
+  RotateCcw,
+  Settings,
+  ThumbsUp,
+  CheckCircle2,
+  Flag,
+  RefreshCw,
+} from "lucide-react";
 
 type NotificationMode = "all" | "important" | "none";
 
@@ -30,6 +39,31 @@ type SavedPost = {
   authorName?: string;
   authorNumber?: number;
 };
+
+type RequestRecord = {
+  id: string;
+  postId?: string;
+  postTitle?: string;
+  reason: string;
+  type: "report" | "update";
+  createdAt: string;
+  createdAtMs: number;
+  status: string;
+};
+
+
+function removeDuplicateRequestRecords(records: RequestRecord[]) {
+  const seen = new Set<string>();
+
+  return records.filter((record) => {
+    const key = `${record.type}-${record.postId ?? "unknown"}-${record.reason}`;
+
+    if (seen.has(key)) return false;
+
+    seen.add(key);
+    return true;
+  });
+}
 
 const notificationOptions: {
   value: NotificationMode;
@@ -59,6 +93,8 @@ export default function SettingsPage() {
   const [hiddenPostDetails, setHiddenPostDetails] = useState<Record<string, string>>({});
   const [likedPosts, setLikedPosts] = useState<SavedPost[]>([]);
   const [verifiedPosts, setVerifiedPosts] = useState<SavedPost[]>([]);
+  const [reportRecords, setReportRecords] = useState<RequestRecord[]>([]);
+  const [updateRequestRecords, setUpdateRequestRecords] = useState<RequestRecord[]>([]);
 
   const loadBlockedPosts = () => {
     const savedIds = JSON.parse(
@@ -89,6 +125,25 @@ export default function SettingsPage() {
     setVerifiedPosts(savedVerifiedPosts);
   };
 
+  const loadRequestRecords = () => {
+    const savedReports = JSON.parse(
+      localStorage.getItem("student-square-report-records") ?? "[]"
+    ) as RequestRecord[];
+
+    const savedUpdateRequests = JSON.parse(
+      localStorage.getItem("student-square-update-request-records") ?? "[]"
+    ) as RequestRecord[];
+
+    const uniqueReports = removeDuplicateRequestRecords(savedReports);
+    const uniqueUpdateRequests = removeDuplicateRequestRecords(savedUpdateRequests);
+
+    localStorage.setItem("student-square-report-records", JSON.stringify(uniqueReports));
+    localStorage.setItem("student-square-update-request-records", JSON.stringify(uniqueUpdateRequests));
+
+    setReportRecords(uniqueReports);
+    setUpdateRequestRecords(uniqueUpdateRequests);
+  };
+
   useEffect(() => {
     const savedMode = localStorage.getItem("student-square-notification-mode") as NotificationMode | null;
     setNotificationMode(savedMode ?? "all");
@@ -96,31 +151,31 @@ export default function SettingsPage() {
     loadBlockedPosts();
     loadLikedPosts();
     loadVerifiedPosts();
+    loadRequestRecords();
 
-    const handleHiddenPostsUpdated = () => {
-      loadBlockedPosts();
-    };
-
-    const handleLikedPostsUpdated = () => {
-      loadLikedPosts();
-    };
-
-    const handleVerifiedPostsUpdated = () => {
-      loadVerifiedPosts();
-    };
+    const handleHiddenPostsUpdated = () => loadBlockedPosts();
+    const handleLikedPostsUpdated = () => loadLikedPosts();
+    const handleVerifiedPostsUpdated = () => loadVerifiedPosts();
+    const handleRequestRecordsUpdated = () => loadRequestRecords();
 
     window.addEventListener("student-square-hidden-posts-updated", handleHiddenPostsUpdated);
     window.addEventListener("student-square-liked-posts-updated", handleLikedPostsUpdated);
     window.addEventListener("student-square-verified-posts-updated", handleVerifiedPostsUpdated);
+    window.addEventListener("student-square-request-records-updated", handleRequestRecordsUpdated);
+    window.addEventListener("storage", handleHiddenPostsUpdated);
     window.addEventListener("storage", handleLikedPostsUpdated);
     window.addEventListener("storage", handleVerifiedPostsUpdated);
+    window.addEventListener("storage", handleRequestRecordsUpdated);
 
     return () => {
       window.removeEventListener("student-square-hidden-posts-updated", handleHiddenPostsUpdated);
       window.removeEventListener("student-square-liked-posts-updated", handleLikedPostsUpdated);
       window.removeEventListener("student-square-verified-posts-updated", handleVerifiedPostsUpdated);
+      window.removeEventListener("student-square-request-records-updated", handleRequestRecordsUpdated);
+      window.removeEventListener("storage", handleHiddenPostsUpdated);
       window.removeEventListener("storage", handleLikedPostsUpdated);
       window.removeEventListener("storage", handleVerifiedPostsUpdated);
+      window.removeEventListener("storage", handleRequestRecordsUpdated);
     };
   }, []);
 
@@ -152,6 +207,20 @@ export default function SettingsPage() {
     window.dispatchEvent(new Event("student-square-liked-posts-updated"));
   };
 
+  const handleDeleteRequestRecord = (type: "report" | "update", recordId: string) => {
+    if (type === "report") {
+      const nextRecords = reportRecords.filter((record) => record.id !== recordId);
+      setReportRecords(nextRecords);
+      localStorage.setItem("student-square-report-records", JSON.stringify(nextRecords));
+    } else {
+      const nextRecords = updateRequestRecords.filter((record) => record.id !== recordId);
+      setUpdateRequestRecords(nextRecords);
+      localStorage.setItem("student-square-update-request-records", JSON.stringify(nextRecords));
+    }
+
+    window.dispatchEvent(new Event("student-square-request-records-updated"));
+  };
+
   return (
     <AuthenticatedLayout>
       <div className="mx-auto max-w-3xl space-y-6">
@@ -161,7 +230,7 @@ export default function SettingsPage() {
             설정
           </h1>
           <p className="text-muted-foreground mt-2">
-            알림, 차단한 게시글, 유용해요와 검증 기록을 관리할 수 있습니다.
+            알림, 신고 기록, 정보 갱신 요청, 차단한 게시글을 관리할 수 있습니다.
           </p>
         </div>
 
@@ -194,6 +263,100 @@ export default function SettingsPage() {
                 </p>
               </button>
             ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Flag className="h-5 w-5" />
+              신고 기록
+            </CardTitle>
+            <CardDescription>
+              내가 신고한 게시글과 신고 사유를 확인할 수 있습니다.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            {reportRecords.length > 0 ? (
+              <div className="space-y-3">
+                {reportRecords.map((record) => (
+                  <div
+                    key={record.id}
+                    className="flex items-start justify-between gap-3 rounded-xl border p-4"
+                  >
+                    <div>
+                      <p className="font-medium">{record.postTitle ?? "제목 없음"}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        사유: {record.reason}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {record.createdAt} · {record.status}
+                      </p>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteRequestRecord("report", record.id)}
+                    >
+                      삭제
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border p-8 text-center text-sm text-muted-foreground">
+                저장된 신고 기록이 없습니다.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5" />
+              정보 갱신 요청 기록
+            </CardTitle>
+            <CardDescription>
+              내가 정보 갱신을 요청한 게시글과 사유를 확인할 수 있습니다.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            {updateRequestRecords.length > 0 ? (
+              <div className="space-y-3">
+                {updateRequestRecords.map((record) => (
+                  <div
+                    key={record.id}
+                    className="flex items-start justify-between gap-3 rounded-xl border p-4"
+                  >
+                    <div>
+                      <p className="font-medium">{record.postTitle ?? "제목 없음"}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        사유: {record.reason}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {record.createdAt} · {record.status}
+                      </p>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteRequestRecord("update", record.id)}
+                    >
+                      삭제
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border p-8 text-center text-sm text-muted-foreground">
+                저장된 정보 갱신 요청이 없습니다.
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -256,10 +419,7 @@ export default function SettingsPage() {
             {verifiedPosts.length > 0 ? (
               <div className="space-y-3">
                 {verifiedPosts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="rounded-xl border p-4"
-                  >
+                  <div key={post.id} className="rounded-xl border p-4">
                     <p className="font-medium">{post.title}</p>
                     <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                       {post.summary}
