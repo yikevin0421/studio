@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react";
 import { MainNav } from './main-nav';
 import { SidebarNav } from './sidebar-nav';
 import { BottomNav } from './bottom-nav';
@@ -10,7 +11,9 @@ export function AuthenticatedLayout({ children }: { children: React.ReactNode })
       <MainNav />
 
       <div className="flex-1 lg:flex container mx-auto px-0 lg:px-4">
-        <SidebarNav />
+        <Suspense fallback={null}>
+            <SidebarNav />
+          </Suspense>
 
         <main className="flex-1 p-4 pb-24 lg:p-8 overflow-y-auto">
           {children}
