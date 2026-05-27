@@ -3,11 +3,14 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ImagePlus, Pencil, Send, X } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
+import { useAuth } from "@/hooks/use-auth";
+import { useFirestore } from "@/firebase";
 import { getOrCreateTipsterProfile } from "@/lib/tipster-profile";
 
 type StoredPost = {
@@ -26,6 +29,8 @@ type StoredPost = {
   imageUrl?: string;
   authorName: string;
   authorNumber: number;
+  userId?: string;
+  hidden?: boolean;
 };
 
 const tipCategories = [
@@ -39,6 +44,8 @@ const tipCategories = [
 
 export default function WritePage() {
   const router = useRouter();
+  const db = useFirestore();
+  const { user } = useAuth();
   const { language } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -46,6 +53,7 @@ export default function WritePage() {
   const [tipCategory, setTipCategory] = useState("학교생활");
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState<string | undefined>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isKorean = language === "ko";
 
@@ -63,17 +71,22 @@ export default function WritePage() {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
 
-    if (!trimmedTitle || !trimmedContent) return;
+    if (!trimmedTitle || !trimmedContent || isSubmitting) return;
+
+    setIsSubmitting(true);
 
     const now = new Date();
     const tipsterProfile = getOrCreateTipsterProfile();
+    const fallbackPostId = `post-${Date.now()}`;
+
+    let postId = fallbackPostId;
 
     const newPost: StoredPost = {
-      id: `post-${Date.now()}`,
+      id: postId,
       title: trimmedTitle,
       summary: trimmedContent,
       category: "최근 뜨는 꿀팁",
@@ -94,22 +107,68 @@ export default function WritePage() {
       imageUrl,
       authorName: tipsterProfile.authorName,
       authorNumber: tipsterProfile.authorNumber,
+      userId: user?.uid,
+      hidden: false,
     };
 
-    const savedPosts = JSON.parse(
-      localStorage.getItem("student-square-posts") ?? "[]"
-    ) as StoredPost[];
+    try {
+      if (db && user) {
+        const postRef = doc(collection(db, "posts"));
+        postId = postRef.id;
+        newPost.id = postId;
 
-    localStorage.setItem(
-      "student-square-posts",
-      JSON.stringify([newPost, ...savedPosts])
-    );
+        await Promise.race([
+          setDoc(postRef, {
+            id: postRef.id,
+            title: trimmedTitle,
+            summary: trimmedContent,
+            content: trimmedContent,
+            detail: trimmedContent,
+            category: "최근 뜨는 꿀팁",
+            tipCategory,
+            useful: 0,
+            bookmarks: 0,
+            verified: 0,
+            createdAt: serverTimestamp(),
+            createdAtMs: now.getTime(),
+            lastVerified: now.toLocaleDateString("ko-KR"),
+            status: "방금 작성됨",
+            imageUrl: imageUrl ?? null,
+            authorName: tipsterProfile.authorName,
+            authorNumber: tipsterProfile.authorNumber,
+            author: tipsterProfile.authorName,
+            userName: tipsterProfile.authorName,
+            userId: user.uid,
+            email: user.email ?? "",
+            hidden: false,
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Firebase 저장 시간이 초과되었습니다.")), 5000)
+          ),
+        ]);
+      } else {
+        console.warn("Firebase db 또는 user가 없어 localStorage에만 저장합니다.");
+      }
+    } catch (error) {
+      console.error("Firebase 저장 실패:", error);
+      alert("Firebase 저장은 실패했지만, 브라우저에는 임시 저장됩니다. 콘솔 오류를 확인해주세요.");
+    } finally {
+      const savedPosts = JSON.parse(
+        localStorage.getItem("student-square-posts") ?? "[]"
+      ) as StoredPost[];
 
-    setTitle("");
-    setTipCategory("학교생활");
-    setContent("");
-    setImageUrl(undefined);
-    router.push("/community");
+      localStorage.setItem(
+        "student-square-posts",
+        JSON.stringify([newPost, ...savedPosts])
+      );
+
+      setTitle("");
+      setTipCategory("학교생활");
+      setContent("");
+      setImageUrl(undefined);
+      setIsSubmitting(false);
+      router.push("/community");
+    }
   };
 
   return (
@@ -223,9 +282,12 @@ export default function WritePage() {
                 {isKorean ? "이미지" : "Image"}
               </Button>
 
-              <Button disabled={!title.trim() || !content.trim()} onClick={handleSubmit}>
+              <Button
+                disabled={!title.trim() || !content.trim() || isSubmitting}
+                onClick={handleSubmit}
+              >
                 <Send className="mr-2 h-4 w-4" />
-                {isKorean ? "게시하기" : "Post"}
+                {isSubmitting ? "게시 중..." : isKorean ? "게시하기" : "Post"}
               </Button>
             </div>
           </CardContent>
