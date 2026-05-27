@@ -11,7 +11,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 sm:p-0">
-      <Link href="/" className="absolute top-8 left-8 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+      <Link href="/" className="absolute top-8 left-8 flex items-center gap-2 text-muted-foreground  transition-colors">
         <ArrowLeft className="h-4 w-4" />
         Back to Home
       </Link>

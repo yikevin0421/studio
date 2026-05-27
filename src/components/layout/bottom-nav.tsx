@@ -56,7 +56,7 @@ export function BottomNav() {
                 "flex flex-col items-center justify-center gap-1 text-xs transition-colors",
                 isActive
                   ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground "
               )}
             >
               <Icon className="h-5 w-5" />

@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   Flame,
   ArchiveX,
+  BookMarked,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -27,6 +28,7 @@ const navItems = [
 const communitySubItems = [
   { name: "최근 뜨는 꿀팁", href: "/community?board=hot", icon: Flame, board: "hot" },
   { name: "유용한 꿀팁", href: "/community?board=useful", icon: Star, board: "useful" },
+  { name: "북마크 많은 꿀팁", href: "/popular-bookmarks", icon: BookMarked, board: "popular" },
   { name: "과거의 꿀팁", href: "/community?board=past", icon: ArchiveX, board: "past" },
 ];
 
@@ -36,7 +38,7 @@ export function SidebarNav() {
   const { profile } = useAuth();
 
   const currentBoard = searchParams.get("board");
-  const isCommunityOpen = pathname === "/community";
+  const isCommunityOpen = pathname === "/community" || pathname === "/popular-bookmarks";
 
   const userRole = String(profile?.role ?? "").toLowerCase();
   const isAdmin = userRole === "admin" || userRole === "superadmin";
@@ -59,7 +61,7 @@ export function SidebarNav() {
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
                     ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    : "text-muted-foreground  "
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -70,7 +72,10 @@ export function SidebarNav() {
                 <div className="mt-1 space-y-1 pl-8">
                   {communitySubItems.map((subItem) => {
                     const SubIcon = subItem.icon;
-                    const isSubActive = currentBoard === subItem.board;
+                    const isSubActive =
+                      subItem.href === "/popular-bookmarks"
+                        ? pathname === "/popular-bookmarks"
+                        : currentBoard === subItem.board;
 
                     return (
                       <Link
@@ -80,7 +85,7 @@ export function SidebarNav() {
                           "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
                           isSubActive
                             ? "bg-accent text-accent-foreground font-medium"
-                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            : "text-muted-foreground  "
                         )}
                       >
                         <SubIcon className="h-4 w-4" />
@@ -101,7 +106,7 @@ export function SidebarNav() {
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               pathname.startsWith("/admin")
                 ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                : "text-muted-foreground  "
             )}
           >
             <ShieldAlert className="h-4 w-4" />
@@ -117,7 +122,7 @@ export function SidebarNav() {
             "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
             pathname.startsWith("/settings")
               ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              : "text-muted-foreground  "
           )}
         >
           <Settings className="h-4 w-4" />

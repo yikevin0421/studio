@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TipEngagementActions } from "@/components/tip-engagement-actions";
+import { TipActionMenu } from "@/components/tip-action-menu";
 import {
   Search,
   Pencil,
@@ -160,11 +161,16 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [tipCounts, setTipCounts] = useState<Record<string, EngagementCounts>>({});
   const [storedPosts, setStoredPosts] = useState<Tip[]>([]);
+  const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
 
   useEffect(() => {
     const posts = JSON.parse(
       localStorage.getItem("student-square-posts") ?? "[]"
     ) as Tip[];
+
+    const hiddenIds = JSON.parse(
+      localStorage.getItem("student-square-hidden-posts") ?? "[]"
+    ) as string[];
 
     setStoredPosts(
       posts.map((post) => ({
@@ -174,11 +180,29 @@ export default function DashboardPage() {
         status: post.status ?? "방금 작성됨",
       }))
     );
+
+    setHiddenPostIds(hiddenIds);
+
+    const handleHiddenPostsUpdated = () => {
+      const nextHiddenIds = JSON.parse(
+        localStorage.getItem("student-square-hidden-posts") ?? "[]"
+      ) as string[];
+
+      setHiddenPostIds(nextHiddenIds);
+    };
+
+    window.addEventListener("student-square-hidden-posts-updated", handleHiddenPostsUpdated);
+
+    return () => {
+      window.removeEventListener("student-square-hidden-posts-updated", handleHiddenPostsUpdated);
+    };
   }, []);
 
   const allTips = useMemo(() => {
-    return [...storedPosts, ...recentHotTips, ...mostUsefulTips];
-  }, [storedPosts]);
+    return [...storedPosts, ...recentHotTips, ...mostUsefulTips].filter(
+      (tip) => !hiddenPostIds.includes(tip.id)
+    );
+  }, [storedPosts, hiddenPostIds]);
 
   const searchResults = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -232,13 +256,27 @@ export default function DashboardPage() {
       <div
         key={tip.id}
         onClick={() => setExpandedTipId(isExpanded ? null : tip.id)}
-        className="relative p-4 rounded-xl border hover:bg-accent transition-colors cursor-pointer"
+        className="relative p-4 rounded-xl border transition-colors cursor-pointer"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{tip.tipCategory ?? tip.category}</Badge>
               <Badge variant="outline">{tip.status}</Badge>
+            </div>
+
+            <div
+              className="absolute right-9 top-2"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <TipActionMenu
+                isMine={Boolean(tip.id.startsWith("post-"))}
+                postId={tip.id}
+                postTitle={tip.title}
+                onBlock={() =>
+                  setHiddenPostIds((prev) => Array.from(new Set([...prev, tip.id])))
+                }
+              />
             </div>
 
             <p className="text-xs text-muted-foreground">
@@ -390,7 +428,7 @@ export default function DashboardPage() {
             </CardHeader>
 
             <CardContent className="space-y-3">
-              {recentHotTips.map(renderTipCard)}
+              {recentHotTips.filter((tip) => !hiddenPostIds.includes(tip.id)).map(renderTipCard)}
             </CardContent>
           </Card>
 
@@ -404,7 +442,7 @@ export default function DashboardPage() {
             </CardHeader>
 
             <CardContent className="space-y-3">
-              {mostUsefulTips.map(renderTipCard)}
+              {mostUsefulTips.filter((tip) => !hiddenPostIds.includes(tip.id)).map(renderTipCard)}
             </CardContent>
           </Card>
         </div>

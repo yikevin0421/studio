@@ -29,7 +29,7 @@ export default function HomePage() {
 
           <Link
             href="/login"
-            className="flex items-center gap-2 rounded-md bg-[#006B3F] px-4 py-2 text-white hover:bg-[#005232]"
+            className="flex items-center gap-2 rounded-md bg-[#006B3F] px-4 py-2 text-white "
           >
             <LogIn className="h-4 w-4" />
             로그인
@@ -57,7 +57,7 @@ export default function HomePage() {
           <div className="flex flex-wrap gap-3">
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 rounded-md bg-[#006B3F] px-5 py-3 text-sm font-medium text-white hover:bg-[#005232]"
+              className="inline-flex items-center gap-2 rounded-md bg-[#006B3F] px-5 py-3 text-sm font-medium text-white "
             >
               커뮤니티 가입하기
               <ArrowRight className="h-4 w-4" />

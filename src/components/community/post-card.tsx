@@ -58,7 +58,7 @@ export function PostCard(props: PostCardProps) {
   };
 
   return (
-    <article className="rounded-xl border bg-background p-4 transition-colors hover:bg-accent/40">
+    <article className="rounded-xl border bg-background p-4 transition-colors ">
       <div className="space-y-2">
         <h3 className="text-lg font-semibold leading-relaxed">
           {title}

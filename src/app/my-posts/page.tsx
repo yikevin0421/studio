@@ -222,7 +222,7 @@ export default function MyPostsPage() {
                         {isMenuOpen && (
                           <div className="absolute right-0 top-9 z-20 w-36 rounded-md border bg-background p-1 shadow-md">
                             <button
-                              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent"
+                              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm "
                               onClick={() => handleEditStart(post)}
                             >
                               <Pencil className="h-4 w-4" />
@@ -230,7 +230,7 @@ export default function MyPostsPage() {
                             </button>
 
                             <button
-                              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm text-destructive hover:bg-accent"
+                              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm text-destructive "
                               onClick={() => handleDelete(post.id)}
                             >
                               <Trash2 className="h-4 w-4" />

@@ -94,12 +94,19 @@ export default function CommunityPage() {
   const [storedPosts, setStoredPosts] = useState<CommunityTip[]>([]);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
   const [expandedPostIds, setExpandedPostIds] = useState<string[]>([]);
 
   useEffect(() => {
     const posts = JSON.parse(
       localStorage.getItem("student-square-posts") ?? "[]"
     ) as CommunityTip[];
+
+    const hiddenIds = JSON.parse(
+      localStorage.getItem("student-square-hidden-posts") ?? "[]"
+    ) as string[];
+
+    setHiddenPostIds(hiddenIds);
 
     setStoredPosts(
       posts.map((post) => ({
@@ -110,6 +117,19 @@ export default function CommunityPage() {
         status: post.status ?? "방금 작성됨",
       }))
     );
+    const handleHiddenPostsUpdated = () => {
+      const nextHiddenIds = JSON.parse(
+        localStorage.getItem("student-square-hidden-posts") ?? "[]"
+      ) as string[];
+
+      setHiddenPostIds(nextHiddenIds);
+    };
+
+    window.addEventListener("student-square-hidden-posts-updated", handleHiddenPostsUpdated);
+
+    return () => {
+      window.removeEventListener("student-square-hidden-posts-updated", handleHiddenPostsUpdated);
+    };
   }, []);
 
   const saveStoredPosts = (posts: CommunityTip[]) => {
@@ -170,14 +190,16 @@ export default function CommunityPage() {
   };
 
   const filteredTips = useMemo(() => {
-    const tips = [...storedPosts, ...sampleTips];
+    const tips = [...storedPosts, ...sampleTips].filter(
+      (tip) => !hiddenPostIds.includes(tip.id)
+    );
 
     const filtered = selectedCategory
       ? tips.filter((tip) => tip.category === selectedCategory)
       : tips;
 
     return [...filtered].sort((a, b) => b.createdAtMs - a.createdAtMs);
-  }, [selectedCategory, storedPosts]);
+  }, [selectedCategory, storedPosts, hiddenPostIds]);
 
   return (
     <AuthenticatedLayout>
@@ -283,8 +305,13 @@ export default function CommunityPage() {
 
                       <TipActionMenu
                         isMine={Boolean(tip.isMine)}
+                        postId={tip.id}
+                        postTitle={tip.title}
                         onEdit={() => handleEditStart(tip)}
                         onDelete={() => handleDelete(tip.id)}
+                        onBlock={() =>
+                          setHiddenPostIds((prev) => Array.from(new Set([...prev, tip.id])))
+                        }
                       />
                     </div>
                   </div>

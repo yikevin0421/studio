@@ -8,6 +8,7 @@ import {
   Trash2,
   Flag,
   RefreshCw,
+  Ban,
 } from "lucide-react";
 
 const reportReasons = [
@@ -31,16 +32,52 @@ const updateReasons = [
 
 type TipActionMenuProps = {
   isMine: boolean;
+  postId?: string;
+  postTitle?: string;
   onEdit?: () => void;
   onDelete?: () => void;
+  onBlock?: () => void;
 };
 
-export function TipActionMenu({ isMine, onEdit, onDelete }: TipActionMenuProps) {
+export function TipActionMenu({
+  isMine,
+  postId,
+  postTitle,
+  onEdit,
+  onDelete,
+  onBlock,
+}: TipActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [reasonType, setReasonType] = useState<"report" | "update" | null>(null);
 
   const handleReasonClick = (reason: string) => {
     alert(`선택한 사유: ${reason}`);
+    setReasonType(null);
+    setIsOpen(false);
+  };
+
+  const handleBlock = () => {
+    if (postId) {
+      const savedIds = JSON.parse(
+        localStorage.getItem("student-square-hidden-posts") ?? "[]"
+      ) as string[];
+
+      const savedDetails = JSON.parse(
+        localStorage.getItem("student-square-hidden-post-details") ?? "{}"
+      ) as Record<string, string>;
+
+      const nextIds = Array.from(new Set([...savedIds, postId]));
+      const nextDetails = {
+        ...savedDetails,
+        [postId]: postTitle ?? postId,
+      };
+
+      localStorage.setItem("student-square-hidden-posts", JSON.stringify(nextIds));
+      localStorage.setItem("student-square-hidden-post-details", JSON.stringify(nextDetails));
+      window.dispatchEvent(new Event("student-square-hidden-posts-updated"));
+    }
+
+    onBlock?.();
     setReasonType(null);
     setIsOpen(false);
   };
@@ -64,7 +101,7 @@ export function TipActionMenu({ isMine, onEdit, onDelete }: TipActionMenuProps) 
           {isMine ? (
             <>
               <button
-                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm"
                 onClick={(event) => {
                   event.stopPropagation();
                   onEdit?.();
@@ -76,7 +113,7 @@ export function TipActionMenu({ isMine, onEdit, onDelete }: TipActionMenuProps) 
               </button>
 
               <button
-                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm text-destructive hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm text-destructive"
                 onClick={(event) => {
                   event.stopPropagation();
                   onDelete?.();
@@ -90,7 +127,7 @@ export function TipActionMenu({ isMine, onEdit, onDelete }: TipActionMenuProps) 
           ) : (
             <>
               <button
-                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm"
                 onClick={(event) => {
                   event.stopPropagation();
                   setReasonType(reasonType === "report" ? null : "report");
@@ -101,7 +138,7 @@ export function TipActionMenu({ isMine, onEdit, onDelete }: TipActionMenuProps) 
               </button>
 
               <button
-                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm"
                 onClick={(event) => {
                   event.stopPropagation();
                   setReasonType(reasonType === "update" ? null : "update");
@@ -109,6 +146,17 @@ export function TipActionMenu({ isMine, onEdit, onDelete }: TipActionMenuProps) 
               >
                 <RefreshCw className="h-4 w-4" />
                 정보 갱신 요청
+              </button>
+
+              <button
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleBlock();
+                }}
+              >
+                <Ban className="h-4 w-4" />
+                차단하기
               </button>
             </>
           )}
@@ -122,7 +170,7 @@ export function TipActionMenu({ isMine, onEdit, onDelete }: TipActionMenuProps) 
               {(reasonType === "report" ? reportReasons : updateReasons).map((reason) => (
                 <button
                   key={reason}
-                  className="block w-full rounded-sm px-3 py-2 text-left text-xs hover:bg-accent"
+                  className="block w-full rounded-sm px-3 py-2 text-left text-xs"
                   onClick={(event) => {
                     event.stopPropagation();
                     handleReasonClick(reason);
