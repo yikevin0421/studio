@@ -14,6 +14,7 @@ type StoredPost = {
   title: string;
   summary: string;
   category: "최근 뜨는 꿀팁";
+  tipCategory: string;
   useful: number;
   bookmarks: number;
   verified: number;
@@ -23,28 +24,39 @@ type StoredPost = {
   status: string;
 };
 
+const tipCategories = [
+  "학교생활",
+  "공부공간",
+  "장학/근로",
+  "수강신청",
+  "시설/편의",
+  "기타",
+];
+
 export default function WritePage() {
   const router = useRouter();
   const { language } = useLanguage();
+
+  const [title, setTitle] = useState("");
+  const [tipCategory, setTipCategory] = useState("학교생활");
   const [content, setContent] = useState("");
 
   const isKorean = language === "ko";
 
   const handleSubmit = () => {
+    const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
 
-    if (!trimmedContent) return;
+    if (!trimmedTitle || !trimmedContent) return;
 
     const now = new Date();
 
     const newPost: StoredPost = {
       id: `post-${Date.now()}`,
-      title:
-        trimmedContent.length > 40
-          ? `${trimmedContent.slice(0, 40)}...`
-          : trimmedContent,
+      title: trimmedTitle,
       summary: trimmedContent,
       category: "최근 뜨는 꿀팁",
+      tipCategory,
       useful: 0,
       bookmarks: 0,
       verified: 0,
@@ -69,6 +81,8 @@ export default function WritePage() {
       JSON.stringify([newPost, ...savedPosts])
     );
 
+    setTitle("");
+    setTipCategory("학교생활");
     setContent("");
     router.push("/community");
   };
@@ -102,28 +116,57 @@ export default function WritePage() {
             </CardTitle>
           </CardHeader>
 
-          <CardContent className="p-0">
-            <textarea
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              maxLength={1000}
-              placeholder="예: 도서관 자리, 장학금 신청, 학식, 프린트, 수강신청 관련 꿀팁을 작성해보세요..."
-              className="min-h-[260px] w-full resize-none border-0 bg-background p-6 text-sm outline-none placeholder:text-muted-foreground"
-            />
+          <CardContent className="space-y-4 p-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">제목</label>
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                maxLength={80}
+                placeholder="제목을 입력하세요"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none"
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {title.length}/80
+              </p>
+            </div>
 
-            <div className="flex items-center justify-between border-t p-4">
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" size="sm" type="button">
-                  <ImagePlus className="mr-2 h-4 w-4" />
-                  {isKorean ? "이미지" : "Image"}
-                </Button>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">카테고리</label>
+              <select
+                value={tipCategory}
+                onChange={(event) => setTipCategory(event.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none"
+              >
+                {tipCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                <span className="text-sm text-muted-foreground">
-                  {content.length}/1000
-                </span>
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">내용</label>
+              <textarea
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+                maxLength={1000}
+                placeholder="예: 도서관 자리, 장학금 신청, 학식, 프린트, 수강신청 관련 꿀팁을 작성해보세요..."
+                className="min-h-[260px] w-full resize-none rounded-md border border-input bg-background p-4 text-sm outline-none placeholder:text-muted-foreground"
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {content.length}/1000
+              </p>
+            </div>
 
-              <Button disabled={!content.trim()} onClick={handleSubmit}>
+            <div className="flex items-center justify-between border-t pt-4">
+              <Button variant="ghost" size="sm" type="button">
+                <ImagePlus className="mr-2 h-4 w-4" />
+                {isKorean ? "이미지" : "Image"}
+              </Button>
+
+              <Button disabled={!title.trim() || !content.trim()} onClick={handleSubmit}>
                 <Send className="mr-2 h-4 w-4" />
                 {isKorean ? "게시하기" : "Post"}
               </Button>

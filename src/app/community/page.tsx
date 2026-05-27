@@ -21,6 +21,7 @@ type CommunityTip = {
   title: string;
   summary: string;
   category: "최근 뜨는 꿀팁" | "유용한 꿀팁" | "과거의 꿀팁";
+  tipCategory?: string;
   useful: number;
   bookmarks: number;
   verified: number;
@@ -205,7 +206,7 @@ export default function CommunityPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="secondary">{tip.category}</Badge>
+                        <Badge variant="secondary">{tip.tipCategory ?? tip.category}</Badge>
                         <Badge variant="outline">{tip.status}</Badge>
                       </div>
 
@@ -282,7 +283,7 @@ export default function CommunityPage() {
                       postId={tip.id}
                       title={tip.title}
                       summary={tip.summary}
-                      category={tip.category}
+                      category={tip.tipCategory ?? tip.category}
                       useful={tip.useful}
                       bookmarks={tip.bookmarks}
                       verified={tip.verified ?? 0}

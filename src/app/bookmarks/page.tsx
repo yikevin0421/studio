@@ -12,6 +12,7 @@ type BookmarkPost = {
   title: string;
   summary: string;
   category?: string;
+  tipCategory?: string;
   useful: number;
   bookmarks: number;
   verified: number;
@@ -52,7 +53,7 @@ export default function BookmarksPage() {
               <Card key={post.id}>
                 <CardHeader>
                   <div className="space-y-2">
-                    {post.category && <Badge variant="secondary">{post.category}</Badge>}
+                    {post.category && <Badge variant="secondary">{post.tipCategory ?? post.category}</Badge>}
 
                     <CardTitle className="text-lg leading-relaxed">
                       {post.title}
@@ -69,7 +70,7 @@ export default function BookmarksPage() {
                     postId={post.id}
                     title={post.title}
                     summary={post.summary}
-                    category={post.category}
+                    category={post.tipCategory ?? post.category}
                     useful={post.useful}
                     bookmarks={post.bookmarks}
                     verified={post.verified}

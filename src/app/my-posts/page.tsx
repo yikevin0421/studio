@@ -24,6 +24,7 @@ type MyPost = {
   title: string;
   summary: string;
   category: string;
+  tipCategory?: string;
   useful: number;
   bookmarks: number;
   verified?: number;
@@ -178,7 +179,7 @@ export default function MyPostsPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="secondary">{post.category}</Badge>
+                          <Badge variant="secondary">{post.tipCategory ?? post.category}</Badge>
                           <Badge variant="outline">{post.status ?? "방금 작성됨"}</Badge>
                         </div>
 
@@ -255,7 +256,7 @@ export default function MyPostsPage() {
                         postId={post.id}
                         title={post.title}
                         summary={post.summary}
-                        category={post.category}
+                        category={post.tipCategory ?? post.category}
                         useful={post.useful}
                         bookmarks={post.bookmarks}
                         verified={post.verified ?? 0}
