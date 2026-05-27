@@ -1,10 +1,11 @@
 "use client"
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 
-export default function AboutPage() {
+function AboutContent() {
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
 
@@ -16,7 +17,7 @@ export default function AboutPage() {
       <div className="mx-auto max-w-5xl px-6 py-8">
         <Link
           href={backHref}
-          className="inline-flex items-center gap-2 text-sm font-medium text-[#064420] hover:text-[#006B3F]"
+          className="inline-flex items-center gap-2 text-sm font-medium text-[#064420]"
         >
           <ArrowLeft className="h-4 w-4" />
           {backText}
@@ -106,5 +107,19 @@ export default function AboutPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function AboutPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#F7FAF6] px-6 py-8 text-[#102A1F]">
+          불러오는 중...
+        </main>
+      }
+    >
+      <AboutContent />
+    </Suspense>
   );
 }
