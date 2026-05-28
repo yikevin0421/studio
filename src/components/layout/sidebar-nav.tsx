@@ -51,7 +51,9 @@ export function SidebarNav() {
           const isActive =
             item.href === "/dashboard"
               ? pathname === "/dashboard"
-              : pathname.startsWith(item.href);
+              : item.href === "/community"
+                ? pathname === "/community" || pathname === "/popular-bookmarks"
+                : pathname.startsWith(item.href);
 
           return (
             <div key={item.href}>
@@ -68,14 +70,17 @@ export function SidebarNav() {
                 {item.name}
               </Link>
 
-              {item.name === "커뮤니티" && isCommunityOpen && (
+              {item.name === "커뮤니티" && (
                 <div className="mt-1 space-y-1 pl-8">
                   {communitySubItems.map((subItem) => {
                     const SubIcon = subItem.icon;
                     const isSubActive =
                       subItem.href === "/popular-bookmarks"
                         ? pathname === "/popular-bookmarks"
-                        : currentBoard === subItem.board;
+                        : pathname === "/community" &&
+                          (subItem.board === "hot"
+                            ? currentBoard === null || currentBoard === "hot"
+                            : currentBoard === subItem.board);
 
                     return (
                       <Link

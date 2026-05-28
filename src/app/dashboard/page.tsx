@@ -261,7 +261,7 @@ export default function DashboardPage() {
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">{tip.tipCategory ?? tip.category}</Badge>
+              <Badge variant="secondary">{tip.tipCategory ?? (tip.category === "최근 뜨는 꿀팁" ? "학교생활" : tip.category)}</Badge>
               <Badge variant="outline">{tip.status}</Badge>
             </div>
 
@@ -324,7 +324,7 @@ export default function DashboardPage() {
               postId={tip.id}
               title={tip.title}
               summary={tip.summary}
-              category={tip.tipCategory ?? tip.category}
+              category={tip.tipCategory ?? (tip.category === "최근 뜨는 꿀팁" ? "학교생활" : tip.category)}
               useful={counts.useful}
               bookmarks={counts.bookmarks}
               verified={counts.verified}

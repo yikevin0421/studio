@@ -14,6 +14,7 @@ import {
   MessageCircle,
   Send,
   MoreHorizontal,
+  Flag,
   BellOff,
   Ban,
 } from "lucide-react";
@@ -590,6 +591,63 @@ export function TipEngagementActions({
     setOpenReplyMenuId(null);
   };
 
+  const handleReportReply = (reply: VerificationReply) => {
+    const storageKey = "student-square-report-records";
+
+    const savedRecords = JSON.parse(
+      localStorage.getItem(storageKey) ?? "[]"
+    ) as Array<{
+      id: string;
+      postId?: string;
+      postTitle?: string;
+      reason: string;
+      type: "report" | "update";
+      createdAt: string;
+      createdAtMs: number;
+      status: string;
+    }>;
+
+    const reason = `검증 답글 신고: ${reply.authorName}`;
+
+    const alreadyExists = savedRecords.some(
+      (record) =>
+        record.type === "report" &&
+        record.postId === postId &&
+        record.reason === reason
+    );
+
+    if (alreadyExists) {
+      alert("이미 해당 검증 답글을 신고했습니다.");
+      setOpenReplyMenuId(null);
+      return;
+    }
+
+    const now = new Date();
+
+    const newRecord = {
+      id: `reply-report-${Date.now()}`,
+      postId,
+      postTitle: `${title} - 검증 답글`,
+      reason,
+      type: "report" as const,
+      createdAt: now.toLocaleString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      createdAtMs: now.getTime(),
+      status: "접수됨",
+    };
+
+    localStorage.setItem(storageKey, JSON.stringify([newRecord, ...savedRecords]));
+    window.dispatchEvent(new Event("student-square-request-records-updated"));
+
+    alert("검증 답글 신고가 저장되었습니다.");
+    setOpenReplyMenuId(null);
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
@@ -788,6 +846,14 @@ export function TipEngagementActions({
                                 >
                                   <BellOff className="h-4 w-4" />
                                   답글 알림 끄기
+                                </button>
+
+                                <button
+                                  className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm"
+                                  onClick={() => handleReportReply(reply)}
+                                >
+                                  <Flag className="h-4 w-4" />
+                                  신고하기
                                 </button>
 
                                 <button

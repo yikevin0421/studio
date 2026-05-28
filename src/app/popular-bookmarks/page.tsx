@@ -227,7 +227,7 @@ export default function PopularBookmarksPage() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">{tip.tipCategory ?? tip.category}</Badge>
+                <Badge variant="secondary">{tip.tipCategory ?? (tip.category === "최근 뜨는 꿀팁" ? "학교생활" : tip.category)}</Badge>
                 <Badge variant="outline">{tip.status ?? "현재 유효"}</Badge>
               </div>
 
@@ -329,7 +329,7 @@ export default function PopularBookmarksPage() {
               postId={tip.id}
               title={tip.title}
               summary={tip.summary}
-              category={tip.tipCategory ?? tip.category}
+              category={tip.tipCategory ?? (tip.category === "최근 뜨는 꿀팁" ? "학교생활" : tip.category)}
               useful={counts.useful}
               bookmarks={counts.bookmarks}
               verified={counts.verified}
