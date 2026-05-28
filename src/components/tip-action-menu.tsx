@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react";
+import { doc, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
+import { useFirestore } from "@/firebase";
 import {
   MoreHorizontal,
   Pencil,
@@ -50,6 +52,88 @@ type TipActionMenuProps = {
   onBlock?: () => void;
 };
 
+
+type StoredPostPatch = {
+  category?: "최근 뜨는 꿀팁" | "유용한 꿀팁" | "과거의 꿀팁";
+  status?: string;
+  hidden?: boolean;
+};
+
+function getRecordsForPost(records: RequestRecord[], postId?: string) {
+  if (!postId) return [];
+  return records.filter((record) => record.postId === postId);
+}
+
+function updateLocalStoredPost(postId: string, patch: StoredPostPatch) {
+  const savedPosts = JSON.parse(
+    localStorage.getItem("student-square-posts") ?? "[]"
+  ) as Array<Record<string, unknown>>;
+
+  const nextPosts = savedPosts.map((post) =>
+    post.id === postId
+      ? {
+          ...post,
+          ...patch,
+        }
+      : post
+  );
+
+  localStorage.setItem("student-square-posts", JSON.stringify(nextPosts));
+}
+
+function savePostStatusOverride(postId: string, patch: StoredPostPatch) {
+  const savedOverrides = JSON.parse(
+    localStorage.getItem("student-square-post-status-overrides") ?? "{}"
+  ) as Record<string, StoredPostPatch>;
+
+  const nextOverrides = {
+    ...savedOverrides,
+    [postId]: {
+      ...(savedOverrides[postId] ?? {}),
+      ...patch,
+    },
+  };
+
+  localStorage.setItem(
+    "student-square-post-status-overrides",
+    JSON.stringify(nextOverrides)
+  );
+}
+
+function hidePostLocally(postId: string, postTitle?: string) {
+  const savedIds = JSON.parse(
+    localStorage.getItem("student-square-hidden-posts") ?? "[]"
+  ) as string[];
+
+  const savedDetails = JSON.parse(
+    localStorage.getItem("student-square-hidden-post-details") ?? "{}"
+  ) as Record<string, string>;
+
+  const nextIds = Array.from(new Set([...savedIds, postId]));
+  const nextDetails = {
+    ...savedDetails,
+    [postId]: postTitle ?? postId,
+  };
+
+  localStorage.setItem("student-square-hidden-posts", JSON.stringify(nextIds));
+  localStorage.setItem("student-square-hidden-post-details", JSON.stringify(nextDetails));
+  updateLocalStoredPost(postId, { hidden: true, status: "신고 누적 숨김" });
+  savePostStatusOverride(postId, { hidden: true, status: "신고 누적 숨김" });
+  window.dispatchEvent(new Event("student-square-hidden-posts-updated"));
+}
+
+function movePostToPastLocally(postId: string) {
+  const patch: StoredPostPatch = {
+    category: "과거의 꿀팁",
+    status: "정보 갱신 요청 누적",
+  };
+
+  updateLocalStoredPost(postId, patch);
+  savePostStatusOverride(postId, patch);
+  window.dispatchEvent(new Event("student-square-post-status-updated"));
+}
+
+
 function removeDuplicateRecords(records: RequestRecord[]) {
   const seen = new Set<string>();
 
@@ -73,8 +157,9 @@ export function TipActionMenu({
 }: TipActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [reasonType, setReasonType] = useState<"report" | "update" | null>(null);
+  const db = useFirestore();
 
-  const handleReasonClick = (reason: string) => {
+  const handleReasonClick = async (reason: string) => {
     if (!reasonType) return;
 
     const storageKey =
@@ -125,14 +210,49 @@ export function TipActionMenu({
     };
 
     const nextRecords = removeDuplicateRecords([newRecord, ...savedRecords]);
+    const postRecords = getRecordsForPost(nextRecords, postId);
 
     localStorage.setItem(storageKey, JSON.stringify(nextRecords));
     window.dispatchEvent(new Event("student-square-request-records-updated"));
 
+    let moderationMessage = "";
+
+    if (postId && reasonType === "report" && postRecords.length >= 3) {
+      hidePostLocally(postId, postTitle);
+
+      if (db) {
+        updateDoc(doc(db, "posts", postId), {
+          hidden: true,
+          status: "신고 누적 숨김",
+          reportCount: postRecords.length,
+        }).catch((error) => {
+          console.warn("Firestore 신고 누적 반영 실패:", error);
+        });
+      }
+
+      moderationMessage = "\n신고가 3회 이상 누적되어 게시글이 자동 숨김 처리되었습니다.";
+    }
+
+    if (postId && reasonType === "update" && postRecords.length >= 3) {
+      movePostToPastLocally(postId);
+
+      if (db) {
+        updateDoc(doc(db, "posts", postId), {
+          category: "과거의 꿀팁",
+          status: "정보 갱신 요청 누적",
+          updateRequestCount: postRecords.length,
+        }).catch((error) => {
+          console.warn("Firestore 정보 갱신 요청 누적 반영 실패:", error);
+        });
+      }
+
+      moderationMessage = "\n정보 갱신 요청이 3회 이상 누적되어 과거의 꿀팁으로 이동되었습니다.";
+    }
+
     alert(
       reasonType === "report"
-        ? "신고가 저장되었습니다."
-        : "정보 갱신 요청이 저장되었습니다."
+        ? `신고가 저장되었습니다.${moderationMessage}`
+        : `정보 갱신 요청이 저장되었습니다.${moderationMessage}`
     );
 
     setReasonType(null);

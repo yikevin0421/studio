@@ -34,6 +34,7 @@ type CommunityTip = {
   authorName?: string;
   authorNumber?: number;
   isMine?: boolean;
+  hidden?: boolean;
 };
 
 const sampleTips: CommunityTip[] = [
@@ -97,39 +98,45 @@ function CommunityPageContent() {
   const [editingText, setEditingText] = useState("");
   const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
   const [expandedPostIds, setExpandedPostIds] = useState<string[]>([]);
+  const [postStatusOverrides, setPostStatusOverrides] = useState<Record<string, Partial<CommunityTip>>>({});
 
   useEffect(() => {
-    const posts = JSON.parse(
-      localStorage.getItem("student-square-posts") ?? "[]"
-    ) as CommunityTip[];
+    const loadCommunityState = () => {
+      const posts = JSON.parse(
+        localStorage.getItem("student-square-posts") ?? "[]"
+      ) as CommunityTip[];
 
-    const hiddenIds = JSON.parse(
-      localStorage.getItem("student-square-hidden-posts") ?? "[]"
-    ) as string[];
-
-    setHiddenPostIds(hiddenIds);
-
-    setStoredPosts(
-      posts.map((post) => ({
-        ...post,
-        isMine: true,
-        verified: post.verified ?? 0,
-        lastVerified: post.lastVerified ?? "-",
-        status: post.status ?? "방금 작성됨",
-      }))
-    );
-    const handleHiddenPostsUpdated = () => {
-      const nextHiddenIds = JSON.parse(
+      const hiddenIds = JSON.parse(
         localStorage.getItem("student-square-hidden-posts") ?? "[]"
       ) as string[];
 
-      setHiddenPostIds(nextHiddenIds);
+      const overrides = JSON.parse(
+        localStorage.getItem("student-square-post-status-overrides") ?? "{}"
+      ) as Record<string, Partial<CommunityTip>>;
+
+      setHiddenPostIds(hiddenIds);
+      setPostStatusOverrides(overrides);
+
+      setStoredPosts(
+        posts.map((post) => ({
+          ...post,
+          ...(overrides[post.id] ?? {}),
+          isMine: true,
+          verified: post.verified ?? 0,
+          lastVerified: post.lastVerified ?? "-",
+          status: overrides[post.id]?.status ?? post.status ?? "방금 작성됨",
+        }))
+      );
     };
 
-    window.addEventListener("student-square-hidden-posts-updated", handleHiddenPostsUpdated);
+    loadCommunityState();
+
+    window.addEventListener("student-square-hidden-posts-updated", loadCommunityState);
+    window.addEventListener("student-square-post-status-updated", loadCommunityState);
 
     return () => {
-      window.removeEventListener("student-square-hidden-posts-updated", handleHiddenPostsUpdated);
+      window.removeEventListener("student-square-hidden-posts-updated", loadCommunityState);
+      window.removeEventListener("student-square-post-status-updated", loadCommunityState);
     };
   }, []);
 
@@ -191,16 +198,19 @@ function CommunityPageContent() {
   };
 
   const filteredTips = useMemo(() => {
-    const tips = [...storedPosts, ...sampleTips].filter(
-      (tip) => !hiddenPostIds.includes(tip.id)
-    );
+    const tips = [...storedPosts, ...sampleTips]
+      .map((tip) => ({
+        ...tip,
+        ...(postStatusOverrides[tip.id] ?? {}),
+      }))
+      .filter((tip) => !hiddenPostIds.includes(tip.id) && !tip.hidden);
 
     const filtered = selectedCategory
       ? tips.filter((tip) => tip.category === selectedCategory)
       : tips;
 
     return [...filtered].sort((a, b) => b.createdAtMs - a.createdAtMs);
-  }, [selectedCategory, storedPosts, hiddenPostIds]);
+  }, [selectedCategory, storedPosts, hiddenPostIds, postStatusOverrides]);
 
   return (
     <AuthenticatedLayout>
