@@ -112,10 +112,13 @@ export default function WritePage() {
     };
 
     try {
-      if (db && user) {
+      if (db) {
         const postRef = doc(collection(db, "posts"));
         postId = postRef.id;
         newPost.id = postId;
+
+        const writerId = user?.uid ?? `demo-tipster-${tipsterProfile.authorNumber}`;
+        const writerEmail = user?.email ?? "demo-login-mode";
 
         await Promise.race([
           setDoc(postRef, {
@@ -138,8 +141,8 @@ export default function WritePage() {
             authorNumber: tipsterProfile.authorNumber,
             author: tipsterProfile.authorName,
             userName: tipsterProfile.authorName,
-            userId: user.uid,
-            email: user.email ?? "",
+            userId: writerId,
+            email: writerEmail,
             hidden: false,
           }),
           new Promise((_, reject) =>
@@ -147,7 +150,7 @@ export default function WritePage() {
           ),
         ]);
       } else {
-        console.warn("Firebase db 또는 user가 없어 localStorage에만 저장합니다.");
+        console.warn("Firebase db가 없어 localStorage에만 저장합니다.");
       }
     } catch (error) {
       console.error("Firebase 저장 실패:", error);
